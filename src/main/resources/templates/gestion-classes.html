@@ -20,6 +20,17 @@
       <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+    <div th:if="${classesGenerees != null}" class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-2 py-2 mb-3">
+      <i class="bi bi-magic"></i>
+      <span th:if="${classesGenerees > 0}">
+        <strong th:text="${classesGenerees}"></strong> classe(s) créée(s) pour l'année
+        <strong th:text="${anneeScolaire}"></strong>.
+      </span>
+      <span th:unless="${classesGenerees > 0}">
+        Toutes les classes existent déjà pour cette année scolaire.
+      </span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 
     <nav aria-label="breadcrumb" class="mb-3">
       <ol class="breadcrumb small">
@@ -29,10 +40,43 @@
     </nav>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="fw-bold mb-0"><i class="bi bi-building text-warning me-2"></i>Gestion des classes</h4>
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-building text-warning me-2"></i>Gestion des classes</h4>
+        <p class="text-muted small mb-0">Année scolaire en cours : <strong th:text="${anneeScolaire}"></strong></p>
+      </div>
       <button class="btn btn-warning btn-sm text-dark" data-bs-toggle="modal" data-bs-target="#modalClasse">
         <i class="bi bi-plus-circle me-1"></i>Nouvelle classe
       </button>
+    </div>
+
+    <!-- Génération automatique des classes -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3 bg-primary bg-opacity-10">
+          <i class="bi bi-magic fs-4 text-primary"></i>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">Génération automatique des classes</div>
+          <div class="text-muted small mt-1" th:if="${!#lists.isEmpty(typesActifs)}">
+            Types configurés :
+            <span th:each="t, it : ${typesActifs}">
+              <strong th:text="${t}"></strong><span th:if="${!it.last}">, </span>
+            </span>
+            — année <strong th:text="${anneeScolaire}"></strong>
+          </div>
+          <div class="text-muted small mt-1" th:if="${#lists.isEmpty(typesActifs)}">
+            Aucun type d'établissement configuré. Allez dans
+            <a th:href="@{/parametres}">Paramètres</a> pour cocher les niveaux proposés.
+          </div>
+        </div>
+        <form th:action="@{/gestion-classes/generer}" method="post">
+          <button type="submit" class="btn btn-outline-primary btn-sm"
+                  th:disabled="${#lists.isEmpty(typesActifs)}"
+                  onclick="return confirm('Générer les classes pour les types configurés ?')">
+            <i class="bi bi-play-fill me-1"></i>Générer les classes
+          </button>
+        </form>
+      </div>
     </div>
 
     <div class="row g-3">
@@ -99,7 +143,7 @@
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold">Année scolaire</label>
-              <input type="text" name="anneeScolaire" class="form-control" value="2025-2026" placeholder="2025-2026">
+              <input type="text" name="anneeScolaire" class="form-control" th:value="${anneeScolaire}" placeholder="2025-2026">
             </div>
           </div>
         </div>

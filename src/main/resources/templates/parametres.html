@@ -36,18 +36,6 @@
       <span>Paramètres enregistrés avec succès.</span>
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <div th:if="${classesGenerees != null}" class="alert alert-info alert-dismissible d-flex align-items-center gap-2 mb-3">
-      <i class="bi bi-magic"></i>
-      <span th:if="${classesGenerees > 0}">
-        <strong th:text="${classesGenerees}"></strong> classe(s) créée(s) pour l'année
-        <strong th:text="${p['ANNEE_SCOLAIRE'] ?: '–'}"></strong>.
-      </span>
-      <span th:unless="${classesGenerees > 0}">
-        Toutes les classes existent déjà pour cette année scolaire.
-      </span>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-
     <!-- Onglets -->
     <ul class="nav nav-tabs mb-4" id="paramTabs">
       <li class="nav-item">
@@ -278,23 +266,13 @@
           </div>
         </form>
 
-        <!-- Génération des classes (formulaire séparé) -->
         <div class="bg-light border rounded-3 p-3 d-flex align-items-center gap-3">
-          <div class="flex-grow-1">
-            <div class="fw-semibold"><i class="bi bi-magic text-primary me-1"></i>Génération automatique des classes</div>
-            <div class="text-muted small mt-1">
-              Crée les classes pour les types cochés ci-dessus · Année :
-              <strong th:text="${p['ANNEE_SCOLAIRE'] ?: '–'}"></strong> ·
-              Classes actuelles :
-              <strong th:text="${#lists.size(classesAnnee)}"></strong>
-            </div>
+          <i class="bi bi-info-circle text-primary fs-5"></i>
+          <div class="flex-grow-1 small text-muted">
+            Une fois les types d'établissement enregistrés, rendez-vous dans l'onglet
+            <a th:href="@{/gestion-classes}" class="fw-semibold">Classes</a>
+            pour générer automatiquement les classes correspondantes.
           </div>
-          <form th:action="@{/parametres/classes/generer}" method="post">
-            <button type="submit" class="btn btn-outline-primary btn-sm"
-                    onclick="return confirm('Générer les classes pour les types sélectionnés ?')">
-              <i class="bi bi-play-fill me-1"></i>Générer les classes
-            </button>
-          </form>
         </div>
       </div>
 

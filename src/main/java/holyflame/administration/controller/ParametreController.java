@@ -45,10 +45,6 @@ public class ParametreController {
         // Frais
         model.addAttribute("frais", fraisRepository.findByEtablissementIdOrderByTypeFraisAscDesignationAsc(etabId));
 
-        // Classes année courante
-        String annee = p.getOrDefault("ANNEE_SCOLAIRE", "2025-2026");
-        model.addAttribute("classesAnnee", classeRepository.findByAnneeScolaireAndEtablissementId(annee, etabId));
-
         // ── Onglet Autorisations ──────────────────────────────────────────
         // Migration automatique des anciens enregistrements sans etabId
         matiereRepository.migrateNullEtablissementId(etabId);
@@ -232,40 +228,6 @@ public class ParametreController {
                     "Délégation accès direction", "SECURITE");
         ra.addFlashAttribute("successMsg", "Paramètre de délégation mis à jour.");
         return "redirect:/parametres?saved=true&tab=autorisations";
-    }
-
-    @PostMapping("/classes/generer")
-    public String genererClasses(RedirectAttributes ra) {
-        Long etabId = etablissementService.getCurrentEtablissementId();
-        String annee = parametreRepository.findByCleAndEtablissementId("ANNEE_SCOLAIRE", etabId)
-            .map(Parametre::getValeur).orElse("2025-2026");
-
-        Map<String, List<String>> mapping = new LinkedHashMap<>();
-        mapping.put("TYPE_MATERNELLE",   List.of("Petite Section", "Moyenne Section", "Grande Section"));
-        mapping.put("TYPE_PRIMAIRE",     List.of("CP1", "CP2", "CE1", "CE2", "CM1", "CM2"));
-        mapping.put("TYPE_COLLEGE",      List.of("6ème", "5ème", "4ème", "3ème"));
-        mapping.put("TYPE_LYCEE",        List.of("2nde", "1ère", "Terminale"));
-        mapping.put("TYPE_LYCEE_GENERAL",List.of("2nde G", "1ère G", "Terminale G"));
-
-        int count = 0;
-        for (Map.Entry<String, List<String>> e : mapping.entrySet()) {
-            boolean actif = "true".equals(
-                parametreRepository.findByCleAndEtablissementId(e.getKey(), etabId)
-                    .map(Parametre::getValeur).orElse("false"));
-            if (actif) {
-                for (String nom : e.getValue()) {
-                    if (!classeRepository.existsByNomAndAnneeScolaireAndEtablissementId(nom, annee, etabId)) {
-                        Classe c = new Classe();
-                        c.setNom(nom); c.setNiveau(nom);
-                        c.setAnneeScolaire(annee); c.setEtablissementId(etabId);
-                        classeRepository.save(c);
-                        count++;
-                    }
-                }
-            }
-        }
-        ra.addFlashAttribute("classesGenerees", count);
-        return "redirect:/parametres?saved=true&tab=etablissement";
     }
 
     @PostMapping("/frais")
