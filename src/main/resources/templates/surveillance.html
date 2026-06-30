@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Surveillance – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Surveillance</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold mb-0"><i class="bi bi-eye-fill text-info me-2"></i>Surveillance</h4>
+      <div class="d-flex gap-2">
+        <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#modalAbsence">
+          <i class="bi bi-calendar-x me-1"></i>Signaler absence
+        </button>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalProgramme">
+          <i class="bi bi-calendar-week me-1"></i>Nouveau programme
+        </button>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-absences"><i class="bi bi-calendar-x me-1"></i>Absences (<span th:text="${#lists.size(absences)}">0</span>)</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-programmes"><i class="bi bi-calendar-week me-1"></i>Programmes (<span th:text="${#lists.size(programmes)}">0</span>)</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Tab Absences -->
+      <div class="tab-pane fade show active" id="tab-absences">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-0">
+            <div th:if="${#lists.isEmpty(absences)}" class="text-center text-muted py-5">
+              <i class="bi bi-check-circle fs-1 text-success d-block mb-2"></i>Aucune absence — excellent !
+            </div>
+            <div th:unless="${#lists.isEmpty(absences)}" class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr><th>Élève</th><th>Classe</th><th>Date</th><th>Période</th><th>Justifiée</th><th>Motif</th><th class="text-end">Action</th></tr>
+                </thead>
+                <tbody>
+                  <tr th:each="a : ${absences}">
+                    <td class="fw-semibold" th:text="${a.eleve?.nom + ' ' + a.eleve?.prenom}"></td>
+                    <td><span class="badge bg-primary-subtle text-primary" th:text="${a.eleve?.classe?.nom}"></span></td>
+                    <td class="small" th:text="${#temporals.format(a.date,'dd/MM/yyyy')}"></td>
+                    <td class="small" th:text="${a.periode ?: '–'}"></td>
+                    <td>
+                      <span th:if="${a.estJustifiee}" class="badge bg-success-subtle text-success">Oui</span>
+                      <span th:unless="${a.estJustifiee}" class="badge bg-danger-subtle text-danger">Non</span>
+                    </td>
+                    <td class="small text-muted" th:text="${a.motif ?: '–'}"></td>
+                    <td class="text-end">
+                      <form th:action="@{/surveillance/absences/{id}/supprimer(id=${a.id})}" method="post" class="d-inline" onsubmit="return confirm('Supprimer ?')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Programmes -->
+      <div class="tab-pane fade" id="tab-programmes">
+        <div class="row g-3" th:if="${#lists.isEmpty(programmes)}">
+          <div class="col-12 text-center text-muted py-5">
+            <i class="bi bi-calendar3 fs-1 d-block mb-2"></i>Aucun programme créé.
+          </div>
+        </div>
+        <div class="row g-3" th:unless="${#lists.isEmpty(programmes)}">
+          <div class="col-md-6 col-lg-4" th:each="p : ${programmes}">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="fw-bold mb-0" th:text="${p.titre}"></h6>
+                  <span class="badge" th:classappend="${p.statut == 'PUBLIE'} ? 'bg-success' : 'bg-secondary'" th:text="${p.statut}"></span>
+                </div>
+                <div class="text-muted small mb-1" th:if="${p.classe != null}">
+                  <i class="bi bi-building me-1"></i><span th:text="${p.classe.nom}"></span>
+                </div>
+                <div class="text-muted small mb-2">
+                  <i class="bi bi-calendar-range me-1"></i>
+                  <span th:text="${#temporals.format(p.dateDebut,'dd/MM/yyyy')}"></span> →
+                  <span th:text="${#temporals.format(p.dateFin,'dd/MM/yyyy')}"></span>
+                </div>
+                <p class="small mb-3" th:text="${#strings.abbreviate(p.contenu ?: '',120)}"></p>
+                <div class="d-flex gap-2">
+                  <form th:action="@{/surveillance/programmes/{id}/publier(id=${p.id})}" method="post" class="flex-grow-1">
+                    <button type="submit" class="btn btn-sm w-100"
+                            th:classappend="${p.statut == 'PUBLIE'} ? 'btn-outline-warning' : 'btn-success'"
+                            th:text="${p.statut == 'PUBLIE'} ? 'Dépublier' : 'Publier'"></button>
+                  </form>
+                  <form th:action="@{/surveillance/programmes/{id}/supprimer(id=${p.id})}" method="post" onsubmit="return confirm('Supprimer ce programme ?')">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Absence -->
+<div class="modal fade" id="modalAbsence" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form th:action="@{/surveillance/absences}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-calendar-x me-2 text-warning"></i>Signaler une absence</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Élève *</label>
+              <select name="eleveId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="e : ${eleves}" th:value="${e.id}" th:text="${e.nom + ' ' + e.prenom + ' (' + e.classe?.nom + ')'}"></option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Date *</label>
+              <input type="date" name="date" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Période</label>
+              <select name="periode" class="form-select">
+                <option>Journée entière</option><option>Matin</option><option>Après-midi</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="estJustifiee" value="true">
+                <label class="form-check-label small">Absence justifiée</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Motif</label>
+              <input type="text" name="motif" class="form-control" placeholder="Maladie, rendez-vous…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nouveau Programme -->
+<div class="modal fade" id="modalProgramme" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form th:action="@{/surveillance/programmes}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-calendar-week me-2 text-primary"></i>Nouveau programme hebdomadaire</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Titre *</label>
+              <input type="text" name="titre" class="form-control" placeholder="Semaine du 09 au 13 juin 2026" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Classe concernée</label>
+              <select name="classeId" class="form-select">
+                <option value="">Toutes les classes</option>
+                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"></option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Du *</label>
+              <input type="date" name="dateDebut" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Au *</label>
+              <input type="date" name="dateFin" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Contenu / Programme détaillé</label>
+              <textarea name="contenu" class="form-control" rows="6"
+                        placeholder="Lundi : Mathématiques – Chapitre 5 (Algèbre)&#10;Mardi : Français – Rédaction&#10;..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer (brouillon)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

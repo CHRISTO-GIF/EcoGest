@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'Carte scolaire — ' + ${eleve.nom} + ' ' + ${eleve.prenom}">Carte scolaire</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body { background: #f0f4f8; font-family: 'Segoe UI', Arial, sans-serif; }
+
+    .action-bar { max-width: 500px; margin: 1.5rem auto; display:flex; gap:.8rem; justify-content:center; }
+
+    .carte-wrap { width: 340px; margin: 0 auto 1rem; }
+    .carte {
+      width: 340px; height: 214px; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 6px 28px rgba(0,0,0,.18); position: relative;
+      background: linear-gradient(135deg,#1a365d 0%,#2b6cb0 100%); color:#fff;
+      font-size: .8rem;
+    }
+    .carte-header { display:flex; align-items:center; gap:.6rem; padding: .7rem .9rem .5rem; }
+    .carte-header .logo {
+      width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.18);
+      display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;
+    }
+    .carte-header .logo img { width:100%; height:100%; object-fit:contain; }
+    .carte-header .logo i { color:#f6ad55; font-size:1.1rem; }
+    .carte-header .nom-etab { font-weight:800; font-size:.78rem; line-height:1.1; }
+    .carte-header .annee { font-size:.62rem; opacity:.8; }
+
+    .carte-body { display:flex; gap:.8rem; padding: .3rem .9rem; }
+    .carte-photo {
+      width: 70px; height: 86px; border-radius: 8px; background: rgba(255,255,255,.15);
+      border: 2px solid rgba(255,255,255,.5); overflow:hidden; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .carte-photo img { width:100%; height:100%; object-fit:cover; }
+    .carte-photo i { font-size: 2rem; color: rgba(255,255,255,.6); }
+    .carte-infos { flex:1; min-width:0; }
+    .carte-infos .nom-eleve { font-weight:800; font-size: .95rem; line-height:1.15; text-transform:uppercase; }
+    .carte-infos .ligne { margin-top: .32rem; }
+    .carte-infos .ligne label { font-size:.6rem; text-transform:uppercase; opacity:.7; display:block; }
+    .carte-infos .ligne .val { font-size: .76rem; font-weight:600; }
+
+    .carte-footer {
+      position:absolute; bottom:0; left:0; right:0;
+      background: rgba(0,0,0,.22); padding: .35rem .9rem;
+      font-size:.6rem; display:flex; justify-content:space-between; align-items:center;
+    }
+
+    .statut-impression { max-width: 340px; margin: 0 auto 2rem; text-align:center; font-size:.85rem; }
+
+    @media print {
+      body { background:#fff; }
+      .action-bar, .statut-impression { display:none !important; }
+      .carte-wrap { margin:0; }
+      .carte { box-shadow:none; }
+      @page { size: 85.6mm 54mm; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="action-bar no-print">
+  <button onclick="window.print()" class="btn btn-primary">
+    <i class="bi bi-printer-fill me-2"></i>Imprimer la carte
+  </button>
+  <a th:href="@{/secretariat}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<div class="carte-wrap">
+  <div class="carte">
+    <div class="carte-header">
+      <div class="logo">
+        <img th:if="${logoPath != null}" th:src="@{/uploads/__${logoPath}__}" alt="Logo">
+        <i th:unless="${logoPath != null}" class="bi bi-fire"></i>
+      </div>
+      <div>
+        <div class="nom-etab" th:text="${nomEtab}">HolyFlame</div>
+        <div class="annee" th:text="'Année scolaire ' + ${anneeScolaire}"></div>
+      </div>
+    </div>
+    <div class="carte-body">
+      <div class="carte-photo">
+        <img th:if="${eleve.photoPath != null}" th:src="@{/uploads/__${eleve.photoPath}__}" alt="Photo">
+        <i th:unless="${eleve.photoPath != null}" class="bi bi-person-fill"></i>
+      </div>
+      <div class="carte-infos">
+        <div class="nom-eleve" th:text="${eleve.nom + ' ' + eleve.prenom}"></div>
+        <div class="ligne">
+          <label>Matricule</label>
+          <div class="val" th:text="${eleve.matricule}"></div>
+        </div>
+        <div class="ligne">
+          <label>Classe</label>
+          <div class="val" th:text="${eleve.classe != null ? eleve.classe.nom : '—'}"></div>
+        </div>
+        <div class="ligne" th:if="${eleve.dateNaissance != null}">
+          <label>Né(e) le</label>
+          <div class="val" th:text="${#temporals.format(eleve.dateNaissance,'dd/MM/yyyy')}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="carte-footer">
+      <span><i class="bi bi-shield-check me-1"></i>Carte officielle d'élève</span>
+      <span th:text="${eleve.matricule}"></span>
+    </div>
+  </div>
+</div>
+
+<div class="statut-impression" id="statutImpression">
+  <span th:if="${eleve.carteImprimee}" class="text-success">
+    <i class="bi bi-check-circle-fill me-1"></i>Cette carte a déjà été imprimée.
+  </span>
+  <span th:unless="${eleve.carteImprimee}" class="text-danger">
+    <i class="bi bi-x-circle-fill me-1"></i>Cette carte n'a pas encore été imprimée.
+  </span>
+</div>
+
+<form id="formMarquerImprimee" th:action="@{/secretariat/eleves/{id}/carte/marquer-imprimee(id=${eleve.id})}"
+      method="post" class="d-none">
+  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+</form>
+
+<script>
+  window.addEventListener('afterprint', function () {
+    var form = document.getElementById('formMarquerImprimee');
+    fetch(form.action, { method: 'POST', body: new FormData(form) }).then(function () {
+      var statut = document.getElementById('statutImpression');
+      statut.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Cette carte a été imprimée.</span>';
+    });
+  });
+</script>
+
+</body>
+</html>

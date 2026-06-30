@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Créer mon école — HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --navy: #0f172a; --navy2: #1e293b; --blue: #3b82f6; --blue2: #2563eb;
+      --cyan: #06b6d4; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--navy); color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh; padding: 2rem 1rem;
+    }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 900px; margin: 0 auto 2rem;
+    }
+    .nav-logo { display:flex; align-items:center; gap:.6rem; font-size:1.3rem; font-weight:700; color:#fff; text-decoration:none; }
+    .nav-logo span { color: var(--blue); }
+    .back-link { color: var(--muted); text-decoration: none; font-size: .9rem; }
+    .back-link:hover { color: #fff; }
+
+    .wizard-wrap { max-width: 900px; margin: 0 auto; }
+
+    /* Barre de progression */
+    .progress-steps { display: flex; justify-content: space-between; margin-bottom: 2.5rem; position: relative; }
+    .progress-steps::before {
+      content: ''; position: absolute; top: 18px; left: 0; right: 0; height: 2px;
+      background: rgba(255,255,255,.1); z-index: 0;
+    }
+    .progress-steps .line-fill {
+      position: absolute; top: 18px; left: 0; height: 2px; background: var(--blue);
+      z-index: 1; transition: width .4s; width: 0%;
+    }
+    .step-item { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: .5rem; flex: 1; }
+    .step-circle {
+      width: 38px; height: 38px; border-radius: 50%; background: var(--navy2);
+      border: 2px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .95rem; color: var(--muted); transition: all .3s;
+    }
+    .step-item.active .step-circle { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .step-item.done .step-circle { border-color: #22c55e; background: #22c55e; color: #fff; }
+    .step-label { font-size: .78rem; color: var(--muted); text-align: center; font-weight: 600; }
+    .step-item.active .step-label { color: #fff; }
+
+    /* Cartes d'étape */
+    .step-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px; padding: 2.2rem; display: none;
+    }
+    .step-card.active { display: block; animation: fadeIn .35s; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform: translateY(0);} }
+
+    .step-card h4 { font-weight: 800; margin-bottom: .3rem; }
+    .step-card .step-sub { color: var(--muted); font-size: .88rem; margin-bottom: 1.8rem; }
+
+    .form-label { color: #cbd5e1; font-weight: 600; font-size: .85rem; }
+    .form-control, .form-select {
+      background: #0b1830; border-color: rgba(255,255,255,.15); color: #fff;
+      padding: .65rem .9rem; border-radius: 8px;
+    }
+    .form-control:focus, .form-select:focus {
+      background: #0b1830; border-color: var(--blue); color: #fff;
+      box-shadow: 0 0 0 .2rem rgba(59,130,246,.25);
+    }
+    .form-control::placeholder { color: rgba(200,220,255,.35); }
+    .form-select option { background: #0b1830; }
+    .input-group-text { background: #0b1830; border-color: rgba(255,255,255,.15); color: var(--muted); }
+
+    .nav-buttons { display: flex; justify-content: space-between; margin-top: 2rem; }
+    .btn-wizard-next {
+      background: var(--blue); border: none; color: #fff; font-weight: 700;
+      padding: .7rem 2rem; border-radius: 8px; transition: background .2s;
+    }
+    .btn-wizard-next:hover { background: var(--blue2); color: #fff; }
+    .btn-wizard-prev {
+      background: transparent; border: 1px solid rgba(255,255,255,.2); color: var(--muted);
+      font-weight: 600; padding: .7rem 1.6rem; border-radius: 8px;
+    }
+    .btn-wizard-prev:hover { color: #fff; border-color: rgba(255,255,255,.4); }
+
+    /* Récapitulatif */
+    .recap-item {
+      display: flex; justify-content: space-between; padding: .65rem 0;
+      border-bottom: 1px solid rgba(255,255,255,.06); font-size: .9rem;
+    }
+    .recap-item .label { color: var(--muted); }
+    .recap-item .val { font-weight: 600; color: #fff; }
+
+    .form-text { color: rgba(200,220,255,.45); font-size: .78rem; }
+    .invalid-feedback { display: block; font-size: .78rem; }
+    .alert-wizard { border-radius: 10px; font-size: .88rem; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="nav-logo"><i class="bi bi-fire" style="color:#f6ad55"></i>Holy<span>Flame</span></a>
+  <a href="/" class="back-link"><i class="bi bi-arrow-left me-1"></i>Retour à l'accueil</a>
+</div>
+
+<div class="wizard-wrap">
+
+  <div class="text-center mb-4">
+    <h2 class="fw-bold text-white">Créer mon école</h2>
+    <p class="text-white-50">Configurez votre espace HolyFlame en 3 étapes — moins de 5 minutes.</p>
+  </div>
+
+  <!-- Erreur globale -->
+  <div th:if="${erreurInscription}" class="alert alert-danger alert-wizard mb-4">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${erreurInscription}"></span>
+  </div>
+
+  <!-- Barre de progression -->
+  <div class="progress-steps">
+    <div class="line-fill" id="lineFill"></div>
+    <div class="step-item active" data-step="1">
+      <div class="step-circle">1</div>
+      <div class="step-label">L'école</div>
+    </div>
+    <div class="step-item" data-step="2">
+      <div class="step-circle">2</div>
+      <div class="step-label">Administrateur</div>
+    </div>
+    <div class="step-item" data-step="3">
+      <div class="step-circle">3</div>
+      <div class="step-label">Confirmation</div>
+    </div>
+  </div>
+
+  <form th:action="@{/inscription}" method="post" id="formInscription">
+
+    <!-- ═══════════════════════════════════════════════
+         ÉTAPE 1 — INFORMATIONS DE L'ÉCOLE
+         ═══════════════════════════════════════════════ -->
+    <div class="step-card active" data-step-content="1">
+      <h4><i class="bi bi-building text-primary me-2"></i>Informations officielles de votre école</h4>
+      <p class="step-sub">Ces informations apparaîtront sur vos bulletins, reçus et documents officiels.</p>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Nom complet de l'école <span class="text-danger">*</span></label>
+          <input type="text" id="nomEcole" name="nomEcole" class="form-control" required
+                 placeholder="Ex : Groupe Scolaire HolyFlame Academy">
+          <div class="invalid-feedback" id="err-nomEcole">Le nom de l'école est obligatoire.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Adresse physique de l'établissement</label>
+          <input type="text" id="adresseEcole" name="adresseEcole" class="form-control"
+                 placeholder="Quartier, rue, commune…">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Numéro officiel de l'école</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+            <input type="tel" id="telephoneEcole" name="telephoneEcole" class="form-control"
+                   placeholder="07 00 00 00 00">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Adresse email de l'école</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" id="emailEcole" name="emailEcole" class="form-control"
+                   placeholder="contact@ecole.ci">
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <span></span>
+        <button type="button" class="btn-wizard-next" onclick="allerEtape(2)">
+          Continuer <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         ÉTAPE 2 — ADMINISTRATEUR + LOCALISATION
+         ═══════════════════════════════════════════════ -->
+    <div class="step-card" data-step-content="2">
+      <h4><i class="bi bi-person-badge text-primary me-2"></i>Création des identifiants</h4>
+      <p class="step-sub">Le compte administrateur principal de votre établissement.</p>
+
+      <div class="row g-3 mb-2">
+        <div class="col-md-6">
+          <label class="form-label">Nom de l'administrateur <span class="text-danger">*</span></label>
+          <input type="text" id="adminNom" name="adminNom" class="form-control" required placeholder="NOM">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Prénom de l'administrateur <span class="text-danger">*</span></label>
+          <input type="text" id="adminPrenom" name="adminPrenom" class="form-control" required placeholder="Prénom">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Email administrateur (identifiant de connexion) <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" id="adminEmail" name="adminEmail" class="form-control" required
+                   placeholder="admin@ecole.ci">
+          </div>
+          <div class="form-text">C'est avec cet email que vous vous connecterez à la plateforme.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" id="adminMotDePasse" name="adminMotDePasse" class="form-control" required
+                   minlength="6" placeholder="Min. 6 caractères">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Code de vérification (confirmer le mot de passe) <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+            <input type="password" id="confirmMotDePasse" class="form-control" required
+                   placeholder="Resaisir le mot de passe">
+          </div>
+          <div class="invalid-feedback" id="err-mdp">Les mots de passe ne correspondent pas.</div>
+        </div>
+      </div>
+
+      <hr style="border-color:rgba(255,255,255,.1);margin:1.5rem 0">
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Indicatif pays <span class="text-danger">*</span></label>
+          <select id="indicatifPays" name="indicatifPays" class="form-select" required onchange="majPaysEtMonnaie()">
+            <option value="">— Choisir —</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label">Téléphone de l'administrateur <span class="text-danger">*</span></label>
+          <input type="tel" id="adminTelephone" name="adminTelephone" class="form-control" required
+                 placeholder="00 00 00 00">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Pays</label>
+          <input type="text" id="pays" name="pays" class="form-control" readonly
+                 style="background:#0a1424;color:#60a5fa" placeholder="Auto-rempli">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Monnaie</label>
+          <input type="text" id="monnaie" name="monnaie" class="form-control" readonly
+                 style="background:#0a1424;color:#60a5fa" placeholder="Auto-rempli">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Province / Ville <span class="text-danger">*</span></label>
+          <select id="province" name="province" class="form-select" required>
+            <option value="">— Choisir d'abord l'indicatif —</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Type d'établissement</label>
+          <select id="typeEtablissement" name="typeEtablissement" class="form-select">
+            <option value="">— Choisir —</option>
+            <option value="MATERNELLE">Maternelle</option>
+            <option value="PRIMAIRE">Primaire</option>
+            <option value="COLLEGE">Collège</option>
+            <option value="LYCEE">Lycée</option>
+            <option value="MIXTE">Mixte</option>
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label d-block">Type de gestion <span class="text-danger">*</span></label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="typeGestion" id="gestionPrivee" value="PRIVE" checked>
+              <label class="form-check-label" for="gestionPrivee">École privée</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="typeGestion" id="gestionPublique" value="PUBLIC">
+              <label class="form-check-label" for="gestionPublique">École publique</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <button type="button" class="btn-wizard-prev" onclick="allerEtape(1)">
+          <i class="bi bi-arrow-left me-1"></i> Retour
+        </button>
+        <button type="button" class="btn-wizard-next" onclick="validerEtape2()">
+          Continuer <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         ÉTAPE 3 — RÉCAPITULATIF + CONFIRMATION
+         ═══════════════════════════════════════════════ -->
+    <div class="step-card" data-step-content="3">
+      <h4><i class="bi bi-clipboard-check text-primary me-2"></i>Récapitulatif de votre inscription</h4>
+      <p class="step-sub">Vérifiez vos informations avant de créer votre espace.</p>
+
+      <div class="mb-4">
+        <div class="text-uppercase fw-bold mb-2" style="font-size:.75rem;letter-spacing:.06em;color:#60a5fa">
+          <i class="bi bi-building me-1"></i>École
+        </div>
+        <div class="recap-item"><span class="label">Nom</span><span class="val" id="recapNom">—</span></div>
+        <div class="recap-item"><span class="label">Adresse</span><span class="val" id="recapAdresse">—</span></div>
+        <div class="recap-item"><span class="label">Téléphone</span><span class="val" id="recapTelEcole">—</span></div>
+        <div class="recap-item"><span class="label">Email</span><span class="val" id="recapEmailEcole">—</span></div>
+      </div>
+
+      <div class="mb-4">
+        <div class="text-uppercase fw-bold mb-2" style="font-size:.75rem;letter-spacing:.06em;color:#60a5fa">
+          <i class="bi bi-person-badge me-1"></i>Administrateur
+        </div>
+        <div class="recap-item"><span class="label">Nom complet</span><span class="val" id="recapAdmin">—</span></div>
+        <div class="recap-item"><span class="label">Email (identifiant)</span><span class="val" id="recapEmailAdmin">—</span></div>
+        <div class="recap-item"><span class="label">Téléphone</span><span class="val" id="recapTelAdmin">—</span></div>
+        <div class="recap-item"><span class="label">Pays</span><span class="val" id="recapPays">—</span></div>
+        <div class="recap-item"><span class="label">Province</span><span class="val" id="recapProvince">—</span></div>
+        <div class="recap-item"><span class="label">Monnaie</span><span class="val" id="recapMonnaie">—</span></div>
+        <div class="recap-item"><span class="label">Type d'établissement</span><span class="val" id="recapType">—</span></div>
+        <div class="recap-item"><span class="label">Gestion</span><span class="val" id="recapGestion">—</span></div>
+      </div>
+
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" id="cguCheck" required>
+        <label class="form-check-label small" for="cguCheck">
+          J'accepte les <a href="#" class="text-info">conditions d'utilisation</a> et la
+          <a href="#" class="text-info">politique de confidentialité</a> de HolyFlame.
+        </label>
+      </div>
+
+      <div class="nav-buttons">
+        <button type="button" class="btn-wizard-prev" onclick="allerEtape(2)">
+          <i class="bi bi-arrow-left me-1"></i> Retour
+        </button>
+        <button type="submit" class="btn-wizard-next" id="btnCreer" disabled
+                style="opacity:.5;cursor:not-allowed">
+          <i class="bi bi-check-circle-fill me-1"></i> Créer mon espace
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+// ── Données pays : indicatif → nom, monnaie, provinces ──────────────
+const PAYS_DATA = {
+  '+235': { nom: 'Tchad', monnaie: 'FCFA', provinces: ["N'Djamena",'Moundou','Sarh','Abéché','Kélo','Koumra','Pala','Am Timan','Bongor','Mongo','Doba','Faya-Largeau'] },
+  '+225': { nom: "Côte d'Ivoire", monnaie: 'FCFA', provinces: ['Abidjan','Bouaké','Daloa','San-Pédro','Korhogo','Yamoussoukro','Man','Abengourou','Gagnoa'] },
+  '+221': { nom: 'Sénégal', monnaie: 'FCFA', provinces: ['Dakar','Thiès','Saint-Louis','Ziguinchor','Kaolack','Diourbel','Tambacounda'] },
+  '+237': { nom: 'Cameroun', monnaie: 'FCFA', provinces: ['Douala','Yaoundé','Bafoussam','Bamenda','Garoua','Maroua','Bertoua'] },
+  '+223': { nom: 'Mali', monnaie: 'FCFA', provinces: ['Bamako','Sikasso','Mopti','Gao','Tombouctou','Ségou','Kayes'] },
+  '+226': { nom: 'Burkina Faso', monnaie: 'FCFA', provinces: ['Ouagadougou','Bobo-Dioulasso','Koudougou','Banfora','Ouahigouya'] },
+  '+224': { nom: 'Guinée', monnaie: 'GNF', provinces: ['Conakry','Kankan','Kindia','Labé','Nzérékoré'] },
+  '+228': { nom: 'Togo', monnaie: 'FCFA', provinces: ['Lomé','Sokodé','Kara','Atakpamé','Kpalimé'] },
+  '+229': { nom: 'Bénin', monnaie: 'FCFA', provinces: ['Cotonou','Porto-Novo','Parakou','Djougou','Bohicon'] },
+  '+227': { nom: 'Niger', monnaie: 'FCFA', provinces: ['Niamey','Zinder','Maradi','Agadez','Tahoua'] },
+  '+243': { nom: 'Congo (RDC)', monnaie: 'CDF', provinces: ['Kinshasa','Lubumbashi','Mbuji-Mayi','Kananga','Kisangani'] },
+  '+242': { nom: 'Congo (Brazzaville)', monnaie: 'FCFA', provinces: ['Brazzaville','Pointe-Noire','Dolisie','Ouesso'] },
+  '+241': { nom: 'Gabon', monnaie: 'FCFA', provinces: ['Libreville','Port-Gentil','Franceville','Oyem','Moanda'] },
+  '+261': { nom: 'Madagascar', monnaie: 'MGA', provinces: ['Antananarivo','Toamasina','Antsirabe','Fianarantsoa','Mahajanga'] },
+  '+212': { nom: 'Maroc', monnaie: 'MAD', provinces: ['Casablanca','Rabat','Fès','Marrakech','Agadir','Tanger'] },
+  '+213': { nom: 'Algérie', monnaie: 'DZD', provinces: ['Alger','Oran','Constantine','Annaba','Blida','Tizi Ouzou'] },
+  '+216': { nom: 'Tunisie', monnaie: 'TND', provinces: ['Tunis','Sfax','Sousse','Gabès','Kairouan'] },
+  '+33':  { nom: 'France', monnaie: 'EUR', provinces: ['Paris','Lyon','Marseille','Toulouse','Bordeaux','Nantes','Lille','Strasbourg'] },
+  '+32':  { nom: 'Belgique', monnaie: 'EUR', provinces: ['Bruxelles','Anvers','Gand','Liège','Charleroi'] },
+  '+41':  { nom: 'Suisse', monnaie: 'CHF', provinces: ['Genève','Zurich','Berne','Lausanne','Bâle'] },
+  '+1':   { nom: 'Canada', monnaie: 'CAD', provinces: ['Québec','Ontario','Colombie-Britannique','Alberta','Nouveau-Brunswick'] }
+};
+
+// Remplir le select indicatif au chargement
+(function initIndicatifs() {
+  const select = document.getElementById('indicatifPays');
+  Object.keys(PAYS_DATA).forEach(function(ind) {
+    const opt = document.createElement('option');
+    opt.value = ind;
+    opt.textContent = ind + ' — ' + PAYS_DATA[ind].nom;
+    select.appendChild(opt);
+  });
+})();
+
+function majPaysEtMonnaie() {
+  const ind = document.getElementById('indicatifPays').value;
+  const data = PAYS_DATA[ind];
+  const provinceSelect = document.getElementById('province');
+
+  if (!data) {
+    document.getElementById('pays').value = '';
+    document.getElementById('monnaie').value = '';
+    provinceSelect.innerHTML = '<option value="">— Choisir d\'abord l\'indicatif —</option>';
+    return;
+  }
+
+  document.getElementById('pays').value = data.nom;
+  document.getElementById('monnaie').value = data.monnaie;
+
+  provinceSelect.innerHTML = '<option value="">— Choisir —</option>';
+  data.provinces.forEach(function(p) {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    provinceSelect.appendChild(opt);
+  });
+}
+
+// ── Navigation entre étapes ──────────────────────────────────────────
+let etapeActuelle = 1;
+
+function allerEtape(n) {
+  document.querySelectorAll('.step-card').forEach(function(c) { c.classList.remove('active'); });
+  document.querySelector('[data-step-content="' + n + '"]').classList.add('active');
+
+  document.querySelectorAll('.step-item').forEach(function(s) {
+    const step = parseInt(s.dataset.step);
+    s.classList.remove('active', 'done');
+    if (step < n) s.classList.add('done');
+    if (step === n) s.classList.add('active');
+  });
+
+  document.getElementById('lineFill').style.width = ((n - 1) / 2 * 100) + '%';
+  etapeActuelle = n;
+
+  if (n === 3) remplirRecapitulatif();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validerEtape2() {
+  const champs = ['adminNom','adminPrenom','adminEmail','adminMotDePasse','indicatifPays','adminTelephone','province'];
+  let valide = true;
+  champs.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el.value.trim()) { el.classList.add('is-invalid'); valide = false; }
+    else { el.classList.remove('is-invalid'); }
+  });
+
+  const mdp = document.getElementById('adminMotDePasse').value;
+  const confirm = document.getElementById('confirmMotDePasse').value;
+  const errMdp = document.getElementById('err-mdp');
+  if (mdp !== confirm || mdp.length < 6) {
+    errMdp.style.display = 'block';
+    document.getElementById('confirmMotDePasse').classList.add('is-invalid');
+    valide = false;
+  } else {
+    errMdp.style.display = 'none';
+    document.getElementById('confirmMotDePasse').classList.remove('is-invalid');
+  }
+
+  if (valide) allerEtape(3);
+}
+
+function remplirRecapitulatif() {
+  document.getElementById('recapNom').textContent        = document.getElementById('nomEcole').value || '—';
+  document.getElementById('recapAdresse').textContent     = document.getElementById('adresseEcole').value || '—';
+  document.getElementById('recapTelEcole').textContent    = document.getElementById('telephoneEcole').value || '—';
+  document.getElementById('recapEmailEcole').textContent  = document.getElementById('emailEcole').value || '—';
+
+  const nomComplet = (document.getElementById('adminNom').value + ' ' + document.getElementById('adminPrenom').value).trim();
+  document.getElementById('recapAdmin').textContent       = nomComplet || '—';
+  document.getElementById('recapEmailAdmin').textContent  = document.getElementById('adminEmail').value || '—';
+
+  const ind = document.getElementById('indicatifPays').value;
+  const tel = document.getElementById('adminTelephone').value;
+  document.getElementById('recapTelAdmin').textContent    = (ind && tel) ? (ind + ' ' + tel) : '—';
+  document.getElementById('recapPays').textContent        = document.getElementById('pays').value || '—';
+  document.getElementById('recapProvince').textContent    = document.getElementById('province').value || '—';
+  document.getElementById('recapMonnaie').textContent     = document.getElementById('monnaie').value || '—';
+
+  const typeSelect = document.getElementById('typeEtablissement');
+  document.getElementById('recapType').textContent =
+    typeSelect.value ? typeSelect.options[typeSelect.selectedIndex].text : '—';
+
+  const gestion = document.querySelector('input[name="typeGestion"]:checked');
+  document.getElementById('recapGestion').textContent = gestion
+    ? (gestion.value === 'PRIVE' ? 'École privée' : 'École publique') : '—';
+}
+
+// Active/désactive le bouton final selon la case CGU
+document.getElementById('cguCheck').addEventListener('change', function() {
+  const btn = document.getElementById('btnCreer');
+  btn.disabled = !this.checked;
+  btn.style.opacity = this.checked ? '1' : '.5';
+  btn.style.cursor = this.checked ? 'pointer' : 'not-allowed';
+});
+
+// Validation étape 1
+document.querySelector('[data-step-content="1"] .btn-wizard-next').onclick = function() {
+  const nom = document.getElementById('nomEcole');
+  if (!nom.value.trim()) {
+    nom.classList.add('is-invalid');
+    document.getElementById('err-nomEcole').style.display = 'block';
+    return;
+  }
+  nom.classList.remove('is-invalid');
+  allerEtape(2);
+};
+</script>
+</body>
+</html>

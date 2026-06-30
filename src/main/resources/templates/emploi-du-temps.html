@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'Emploi du temps – ' + ${nomEtab}">Emploi du temps</title>
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/bootstrap-icons.min.css}">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}</style>
+  <style>
+    /* ── Écran ── */
+    .day-col { min-width: 175px; }
+    .creneau-card {
+      border-radius: 10px; padding: .6rem .75rem; margin-bottom: .45rem;
+      border-left: 4px solid #4da3ff; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.09); position: relative;
+    }
+    .creneau-card .time    { font-size: .72rem; color: #6c757d; font-weight: 600; }
+    .creneau-card .matiere { font-weight: 700; font-size: .9rem; color: #1e3a5f; }
+    .creneau-card .info    { font-size: .75rem; color: #6c757d; }
+    .creneau-card .card-actions { position: absolute; top: .3rem; right: .35rem; display: flex; gap: 3px; opacity: 0; transition: opacity .15s; }
+    .creneau-card:hover .card-actions { opacity: 1; }
+    .day-header {
+      background: #1e3a5f; color: #fff;
+      border-radius: 8px 8px 0 0; padding: .45rem .75rem;
+      font-weight: 700; font-size: .82rem; letter-spacing: .04em;
+    }
+    .empty-slot { color: #bbb; font-size: .78rem; text-align: center; padding: 1rem 0; }
+    .jour-1 .creneau-card { border-left-color: #4da3ff; }
+    .jour-2 .creneau-card { border-left-color: #34d399; }
+    .jour-3 .creneau-card { border-left-color: #f59e0b; }
+    .jour-4 .creneau-card { border-left-color: #a78bfa; }
+    .jour-5 .creneau-card { border-left-color: #f87171; }
+    .jour-6 .creneau-card { border-left-color: #fb923c; }
+    .jour-1 .day-header { background: #1565c0; }
+    .jour-2 .day-header { background: #059669; }
+    .jour-3 .day-header { background: #d97706; }
+    .jour-4 .day-header { background: #7c3aed; }
+    .jour-5 .day-header { background: #dc2626; }
+    .jour-6 .day-header { background: #ea580c; }
+
+    /* ── Impression ── */
+    .print-header { display: none; }
+
+    @media print {
+      @page { size: A4 landscape; margin: 1.2cm 1cm 1cm; }
+
+      body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrap  { display: block !important; }
+      .sidebar, .no-print, nav.breadcrumb { display: none !important; }
+      .main { padding: 0 !important; overflow: visible !important; }
+
+      /* En-tête impression */
+      .print-header { display: block !important; margin-bottom: 10px; }
+      .print-header h2 { font-size: 13pt; font-weight: 700; color: #1e3a5f; margin: 0; }
+      .print-header .meta { font-size: 8pt; color: #555; }
+      .print-divider { border: none; border-top: 2px solid #1e3a5f; margin: 6px 0 10px; }
+
+      /* Grille : flex → table */
+      .timetable-grid {
+        display: table !important;
+        width: 100% !important;
+        border-collapse: separate;
+        border-spacing: 4px 0;
+        overflow: visible !important;
+      }
+      .day-col {
+        display: table-cell !important;
+        vertical-align: top;
+        min-width: 0 !important;
+        padding: 0 2px !important;
+      }
+      /* Masquer les jours vides */
+      .jour-vide { display: none !important; }
+
+      .day-header {
+        font-size: 8pt !important;
+        padding: 4px 6px !important;
+        border-radius: 4px 4px 0 0 !important;
+        text-align: center;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .jour-1 .day-header { background: #1565c0 !important; color: #fff !important; }
+      .jour-2 .day-header { background: #059669 !important; color: #fff !important; }
+      .jour-3 .day-header { background: #d97706 !important; color: #fff !important; }
+      .jour-4 .day-header { background: #7c3aed !important; color: #fff !important; }
+      .jour-5 .day-header { background: #dc2626 !important; color: #fff !important; }
+      .jour-6 .day-header { background: #ea580c !important; color: #fff !important; }
+
+      .creneau-card {
+        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        border-left-width: 3px !important;
+        border-radius: 4px !important;
+        padding: 4px 6px !important;
+        margin-bottom: 4px !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .jour-1 .creneau-card { border-left-color: #4da3ff !important; }
+      .jour-2 .creneau-card { border-left-color: #34d399 !important; }
+      .jour-3 .creneau-card { border-left-color: #f59e0b !important; }
+      .jour-4 .creneau-card { border-left-color: #a78bfa !important; }
+      .jour-5 .creneau-card { border-left-color: #f87171 !important; }
+      .jour-6 .creneau-card { border-left-color: #fb923c !important; }
+
+      .creneau-card .time    { font-size: 7pt !important; color: #555 !important; font-weight: 600; }
+      .creneau-card .matiere { font-size: 8.5pt !important; font-weight: 700; color: #1e3a5f !important; }
+      .creneau-card .info    { font-size: 7pt !important; color: #666 !important; }
+      .del-btn { display: none !important; }
+      .empty-slot { font-size: 7pt !important; color: #bbb !important; padding: .5rem 0 !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <!-- En-tête impression (invisible à l'écran) -->
+    <div class="print-header">
+      <div class="d-flex justify-content-between align-items-end">
+        <div>
+          <h2 th:text="${nomEtab}">HolyFlame</h2>
+          <div class="meta">EMPLOI DU TEMPS &nbsp;|&nbsp; Année scolaire <span th:text="${annee}">2025-2026</span></div>
+        </div>
+        <div class="text-end meta">
+          <div>Classe : <strong th:text="${classeNom}">Toutes les classes</strong></div>
+          <div>Imprimé le <span id="printDate"></span></div>
+        </div>
+      </div>
+      <hr class="print-divider">
+    </div>
+
+    <!-- Barre d'actions (écran seulement) -->
+    <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2 no-print">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-calendar3-week me-2 text-primary"></i>Emploi du temps</h4>
+        <p class="text-muted small mb-0">Grille hebdomadaire par classe</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <form method="get" action="/emploi-du-temps" class="d-flex gap-2">
+          <select name="classeId" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+            <option value="">Toutes les classes</option>
+            <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"
+                    th:selected="${c.id == classeId}"></option>
+          </select>
+        </form>
+        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Imprimer paysage
+        </button>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjout">
+          <i class="bi bi-plus-lg me-1"></i>Ajouter un créneau
+        </button>
+      </div>
+    </div>
+
+    <!-- Alerte flash -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show py-2 no-print" role="alert">
+      <i class="bi bi-check-circle me-1"></i><span th:text="${success}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- ── Grille hebdomadaire ── -->
+    <div class="d-flex gap-3 overflow-x-auto pb-3 timetable-grid">
+      <div th:each="entry : ${parJour}"
+           th:classappend="${'jour-' + entry.key + (#lists.isEmpty(entry.value) ? ' jour-vide' : '')}"
+           class="day-col flex-shrink-0" style="width:190px">
+
+        <div class="day-header" th:text="${jours[entry.key]}">Jour</div>
+        <div class="pt-2">
+          <div th:if="${#lists.isEmpty(entry.value)}" class="empty-slot">
+            <i class="bi bi-dash-circle"></i><br>Aucun cours
+          </div>
+          <div th:each="c : ${entry.value}" class="creneau-card"
+               th:attr="data-id=${c.id},
+                        data-jour=${c.jour},
+                        data-heure-debut=${c.heureDebut},
+                        data-heure-fin=${c.heureFin},
+                        data-classe-id=${c.classe != null ? c.classe.id : ''},
+                        data-matiere-id=${c.matiere != null ? c.matiere.id : ''},
+                        data-enseignant=${c.enseignantNom != null ? c.enseignantNom : ''},
+                        data-salle=${c.salle != null ? c.salle : ''}">
+            <div class="time"    th:text="${c.heureDebut + ' – ' + c.heureFin}"></div>
+            <div class="matiere" th:text="${c.matiere != null ? c.matiere.nom : '—'}"></div>
+            <div class="info"    th:text="${c.classe != null ? c.classe.nom : ''}"></div>
+            <div class="info"    th:if="${c.enseignantNom != null and !#strings.isEmpty(c.enseignantNom)}"
+                                 th:text="${c.enseignantNom}"></div>
+            <div class="info"    th:if="${c.salle != null and !#strings.isEmpty(c.salle)}"
+                                 th:text="'Salle : ' + ${c.salle}"></div>
+            <!-- Boutons au survol -->
+            <div class="card-actions no-print">
+              <button type="button" class="btn btn-primary btn-sm py-0 px-1" style="font-size:.7rem"
+                      onclick="ouvrirModifierCreneau(this.closest('.creneau-card'))"
+                      title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form th:action="@{/emploi-du-temps/{id}/supprimer(id=${c.id})}" method="post" class="m-0">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="classeId" th:value="${classeId}">
+                <button type="submit" class="btn btn-danger btn-sm py-0 px-1" style="font-size:.7rem"
+                        onclick="return confirm('Supprimer ce créneau ?')" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-2 no-print">
+      <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Survolez un créneau pour afficher le bouton de suppression. &nbsp;|&nbsp; <i class="bi bi-printer me-1"></i>Le bouton <strong>Imprimer paysage</strong> génère une grille A4 horizontale complète.</small>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Ajout créneau -->
+<div class="modal fade no-print" id="modalAjout" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form th:action="@{/emploi-du-temps}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2 text-primary"></i>Ajouter un créneau</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Jour</label>
+              <select name="jour" class="form-select" required>
+                <option value="1">Lundi</option>
+                <option value="2">Mardi</option>
+                <option value="3">Mercredi</option>
+                <option value="4">Jeudi</option>
+                <option value="5">Vendredi</option>
+                <option value="6">Samedi</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Heure début</label>
+              <input type="time" name="heureDebut" class="form-control" value="07:30" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Heure fin</label>
+              <input type="time" name="heureFin" class="form-control" value="09:00" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Classe</label>
+              <select name="classeId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"
+                        th:selected="${c.id == classeId}"></option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Matière</label>
+              <select name="matiereId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="m : ${matieres}" th:value="${m.id}" th:text="${m.nom}"></option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Enseignant (optionnel)</label>
+              <input type="text" name="enseignantNom" class="form-control" placeholder="Nom de l'enseignant">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Salle (optionnel)</label>
+              <input type="text" name="salle" class="form-control" placeholder="ex: A101">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifier créneau -->
+<div class="modal fade no-print" id="modalModifier" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formModifier" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" name="classeId" id="editClasseIdHidden">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-pencil-square me-2 text-primary"></i>Modifier le créneau
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Jour</label>
+              <select name="jour" id="editJour" class="form-select" required>
+                <option value="1">Lundi</option>
+                <option value="2">Mardi</option>
+                <option value="3">Mercredi</option>
+                <option value="4">Jeudi</option>
+                <option value="5">Vendredi</option>
+                <option value="6">Samedi</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Heure début</label>
+              <input type="time" name="heureDebut" id="editHeureDebut" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Heure fin</label>
+              <input type="time" name="heureFin" id="editHeureFin" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Classe</label>
+              <select name="classeId" id="editClasseId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"></option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Matière</label>
+              <select name="matiereId" id="editMatiereId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="m : ${matieres}" th:value="${m.id}" th:text="${m.nom}"></option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Enseignant (optionnel)</label>
+              <input type="text" name="enseignantNom" id="editEnseignant" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Salle (optionnel)</label>
+              <input type="text" name="salle" id="editSalle" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer les modifications
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('printDate').textContent =
+    new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+
+  function ouvrirModifierCreneau(card) {
+    const id          = card.dataset.id;
+    const jour        = card.dataset.jour;
+    const heureDebut  = card.dataset.heureDebut;
+    const heureFin    = card.dataset.heureFin;
+    const classeId    = card.dataset.classeId;
+    const matiereId   = card.dataset.matiereId;
+    const enseignant  = card.dataset.enseignant;
+    const salle       = card.dataset.salle;
+
+    document.getElementById('formModifier').action = '/emploi-du-temps/' + id + '/modifier';
+    document.getElementById('editJour').value        = jour;
+    document.getElementById('editHeureDebut').value  = heureDebut;
+    document.getElementById('editHeureFin').value    = heureFin;
+    document.getElementById('editClasseId').value    = classeId;
+    document.getElementById('editClasseIdHidden').value = classeId;
+    document.getElementById('editMatiereId').value   = matiereId;
+    document.getElementById('editEnseignant').value  = enseignant;
+    document.getElementById('editSalle').value       = salle;
+
+    new bootstrap.Modal(document.getElementById('modalModifier')).show();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bulletins – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .student-card{transition:box-shadow .15s}.student-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)!important}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>Bulletins de notes</h4>
+        <p class="text-muted small mb-0">Sélectionnez un élève et un trimestre pour générer le bulletin</p>
+      </div>
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalImpressionClasse">
+        <i class="bi bi-printer-fill me-1"></i>Imprimer une classe
+      </button>
+    </div>
+
+    <!-- Barre de recherche + filtre classe -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body py-3">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" id="searchInput" class="form-control border-start-0 ps-0"
+                     placeholder="Rechercher un élève…" oninput="filterStudents()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <form method="get" th:action="@{/bulletins}" id="classeForm">
+              <select name="classeId" class="form-select" onchange="document.getElementById('classeForm').submit()">
+                <option value="">Toutes les classes</option>
+                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"
+                        th:selected="${classeId != null and classeId == c.id}"></option>
+              </select>
+            </form>
+          </div>
+          <div class="col-md-3 text-muted small">
+            <span id="studentCount" th:text="${#lists.size(eleves)} + ' élève(s)'"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste des élèves -->
+    <div th:if="${#lists.isEmpty(eleves)}" class="text-center text-muted py-5">
+      <i class="bi bi-people fs-1 d-block mb-3 opacity-25"></i>
+      <p class="mb-0">Aucun élève trouvé.</p>
+      <a th:href="@{/secretariat}" class="btn btn-primary mt-3 btn-sm">
+        <i class="bi bi-person-plus me-1"></i>Ajouter des élèves
+      </a>
+    </div>
+
+    <div class="row g-3" id="studentList">
+      <div class="col-12 col-sm-6 col-lg-4" th:each="eleve : ${eleves}">
+        <div class="card border-0 shadow-sm h-100 student-card student-item">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center"
+                   style="width:44px;height:44px;flex-shrink:0">
+                <i class="bi bi-person-fill text-primary fs-5"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="fw-bold text-truncate student-name" th:text="${eleve.nom + ' ' + eleve.prenom}"></div>
+                <div class="small text-muted student-class" th:text="${eleve.classe?.nom ?: '–'}"></div>
+                <div class="small text-muted" th:text="${eleve.matricule}"></div>
+              </div>
+            </div>
+            <div class="d-flex gap-1 flex-wrap">
+              <a th:href="@{/bulletins/{id}(id=${eleve.id},trimestre=1)}"
+                 class="btn btn-sm btn-outline-primary flex-fill">
+                <i class="bi bi-file-earmark-text me-1"></i>T1
+              </a>
+              <a th:href="@{/bulletins/{id}(id=${eleve.id},trimestre=2)}"
+                 class="btn btn-sm btn-outline-primary flex-fill">
+                <i class="bi bi-file-earmark-text me-1"></i>T2
+              </a>
+              <a th:href="@{/bulletins/{id}(id=${eleve.id},trimestre=3)}"
+                 class="btn btn-sm btn-outline-primary flex-fill">
+                <i class="bi bi-file-earmark-text me-1"></i>T3
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- Modal Impression par classe -->
+<div class="modal fade" id="modalImpressionClasse" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="get" action="/bulletins/impression">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-printer-fill me-2 text-success"></i>Imprimer les bulletins d'une classe
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Classe</label>
+            <select name="classeId" class="form-select">
+              <option value="">Toutes les classes</option>
+              <option th:each="c : ${classes}" th:value="${c.id}"
+                      th:text="${c.nom}"
+                      th:selected="${classeId != null and classeId == c.id}"></option>
+            </select>
+            <div class="form-text">Laissez vide pour imprimer tous les élèves.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Trimestre</label>
+            <div class="btn-group w-100" role="group">
+              <input type="radio" class="btn-check" name="trimestre" id="t1" value="1" checked>
+              <label class="btn btn-outline-primary" for="t1">1er Trimestre</label>
+              <input type="radio" class="btn-check" name="trimestre" id="t2" value="2">
+              <label class="btn btn-outline-primary" for="t2">2e Trimestre</label>
+              <input type="radio" class="btn-check" name="trimestre" id="t3" value="3">
+              <label class="btn btn-outline-primary" for="t3">3e Trimestre</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="alert alert-info py-2 small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Un bulletin par page — utilisez <strong>Imprimer tout</strong> sur la page suivante.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-arrow-right me-1"></i>Préparer l'impression
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+function filterStudents() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const items = document.querySelectorAll('.student-item');
+  let visible = 0;
+  items.forEach(item => {
+    const name = item.querySelector('.student-name').textContent.toLowerCase();
+    const cls  = item.querySelector('.student-class').textContent.toLowerCase();
+    const show = name.includes(q) || cls.includes(q);
+    item.parentElement.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('studentCount').textContent = visible + ' élève(s)';
+}
+</script>
+</body>
+</html>

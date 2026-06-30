@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reçu de paiement</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body { background: #f0f4f8; font-family: 'Segoe UI', Arial, sans-serif; }
+
+    .recu-wrap {
+      max-width: 680px; margin: 2rem auto; background: #fff;
+      border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,.1);
+      overflow: hidden;
+    }
+
+    /* En-tête bleu */
+    .recu-header {
+      background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+      color: #fff; padding: 2rem 2.5rem; display: flex;
+      align-items: center; gap: 1.5rem;
+    }
+    .recu-header .logo-wrap {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(255,255,255,.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; overflow: hidden;
+    }
+    .recu-header .logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .recu-header .logo-wrap i  { font-size: 2.4rem; color: #f6ad55; }
+    .recu-header .etab-info h1 { font-size: 1.4rem; font-weight: 800; margin: 0; }
+    .recu-header .etab-info p  { margin: .2rem 0 0; font-size: .85rem; opacity: .85; }
+    .recu-header .recu-label   {
+      margin-left: auto; text-align: right; flex-shrink: 0;
+    }
+    .recu-header .recu-label .recu-title {
+      font-size: 1.1rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; opacity: .9;
+    }
+    .recu-header .recu-label .recu-num {
+      font-size: 1.4rem; font-weight: 800; font-family: monospace;
+    }
+
+    /* Bandeau vert PAYÉ */
+    .recu-badge {
+      background: #22c55e; color: #fff;
+      text-align: center; padding: .5rem;
+      font-weight: 700; font-size: .9rem; letter-spacing: .08em;
+    }
+
+    /* Corps du reçu */
+    .recu-body { padding: 2rem 2.5rem; }
+
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    .info-item label {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+      color: #64748b; font-weight: 600; display: block; margin-bottom: .2rem;
+    }
+    .info-item .val {
+      font-size: 1rem; font-weight: 600; color: #1e293b;
+    }
+
+    /* Montant central */
+    .montant-block {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 2px solid #86efac; border-radius: 12px;
+      text-align: center; padding: 1.5rem; margin: 1.5rem 0;
+    }
+    .montant-block .label { font-size: .8rem; color: #15803d; font-weight: 600; text-transform: uppercase; }
+    .montant-block .amount {
+      font-size: 2.5rem; font-weight: 900; color: #15803d;
+      line-height: 1.1; margin: .3rem 0;
+    }
+    .montant-block .mode { font-size: .85rem; color: #166534; }
+
+    /* Ligne séparatrice pointillée */
+    .separator {
+      border: none; border-top: 2px dashed #e2e8f0; margin: 1.5rem 0;
+    }
+
+    /* Pied de reçu */
+    .recu-footer {
+      background: #f8fafc; border-top: 1px solid #e2e8f0;
+      padding: 1.2rem 2.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .recu-footer .signature {
+      text-align: center;
+    }
+    .recu-footer .signature .sig-line {
+      width: 180px; border-top: 1px solid #334155;
+      margin: 2.5rem auto .4rem;
+    }
+    .recu-footer .signature p { font-size: .8rem; color: #475569; }
+
+    /* Boutons — masqués à l'impression */
+    .action-bar {
+      max-width: 680px; margin: 1rem auto;
+      display: flex; gap: .8rem; justify-content: center;
+    }
+
+    /* ── IMPRESSION ── */
+    @media print {
+      body { background: #fff; }
+      .action-bar { display: none !important; }
+      .recu-wrap { box-shadow: none; border-radius: 0; margin: 0; max-width: 100%; }
+      @page { size: A5 portrait; margin: 1cm; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Boutons d'action -->
+<div class="action-bar no-print">
+  <button onclick="window.print()" class="btn btn-primary">
+    <i class="bi bi-printer-fill me-2"></i>Imprimer / Enregistrer PDF
+  </button>
+  <a th:href="@{/finances?tab=paiements}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour aux paiements
+  </a>
+</div>
+
+<!-- Reçu -->
+<div class="recu-wrap">
+
+  <!-- En-tête -->
+  <div class="recu-header">
+    <div class="logo-wrap">
+      <img th:if="${logoPath != null}" th:src="@{/uploads/__${logoPath}__}" alt="Logo">
+      <i th:unless="${logoPath != null}" class="bi bi-fire"></i>
+    </div>
+    <div class="etab-info">
+      <h1 th:text="${nomEtab}">HolyFlame</h1>
+      <p th:if="${adresseEtab != null and !#strings.isEmpty(adresseEtab)}"
+         th:text="${adresseEtab}"></p>
+      <p th:if="${telEtab != null and !#strings.isEmpty(telEtab)}"
+         th:text="'Tél : ' + ${telEtab}"></p>
+      <p th:text="'Année scolaire : ' + ${anneeScolaire}"></p>
+    </div>
+    <div class="recu-label">
+      <div class="recu-title">Reçu de paiement</div>
+      <div class="recu-num" th:text="${paiement.recuNumero}">HF-00001</div>
+    </div>
+  </div>
+
+  <!-- Badge PAYÉ -->
+  <div class="recu-badge">
+    <i class="bi bi-check-circle-fill me-2"></i>PAIEMENT CONFIRMÉ
+  </div>
+
+  <!-- Corps -->
+  <div class="recu-body">
+
+    <div class="info-grid">
+      <!-- Élève -->
+      <div class="info-item">
+        <label>Élève</label>
+        <div class="val"
+             th:text="${paiement.eleve.nom + ' ' + paiement.eleve.prenom}">Nom Prénom</div>
+      </div>
+      <!-- Classe -->
+      <div class="info-item">
+        <label>Classe</label>
+        <div class="val"
+             th:text="${paiement.eleve.classe != null ? paiement.eleve.classe.nom : '—'}">6ème A</div>
+      </div>
+      <!-- Type de paiement -->
+      <div class="info-item">
+        <label>Motif du paiement</label>
+        <div class="val">
+          <span th:switch="${paiement.typePaiement}">
+            <span th:case="'INSCRIPTION'">
+              <i class="bi bi-person-plus-fill text-primary me-1"></i>Frais d'inscription
+            </span>
+            <span th:case="'CANTINE'">
+              <i class="bi bi-cup-hot-fill text-warning me-1"></i>Cantine scolaire
+            </span>
+            <span th:case="'TRANSPORT'">
+              <i class="bi bi-bus-front-fill text-info me-1"></i>Transport scolaire
+            </span>
+            <span th:case="'SCOLARITE'">
+              <i class="bi bi-book-fill text-success me-1"></i>Frais de scolarité
+            </span>
+            <span th:case="*">
+              <i class="bi bi-cash me-1"></i>
+              <span th:text="${paiement.typePaiement}">Autre</span>
+            </span>
+          </span>
+        </div>
+      </div>
+      <!-- Date -->
+      <div class="info-item">
+        <label>Date du paiement</label>
+        <div class="val"
+             th:text="${#temporals.format(paiement.datePaiement, 'dd/MM/yyyy à HH:mm')}">01/01/2026</div>
+      </div>
+    </div>
+
+    <!-- Montant -->
+    <div class="montant-block">
+      <div class="label">Montant reçu</div>
+      <div class="amount">
+        <span th:text="${#numbers.formatDecimal(paiement.montantVerse, 1, 'COMMA', 0, 'POINT')}">50 000</span>
+        <span style="font-size:1.4rem"> FCFA</span>
+      </div>
+      <div class="mode">
+        Mode de paiement :
+        <strong th:switch="${paiement.modePaiement}">
+          <span th:case="'ESPECES'">Espèces</span>
+          <span th:case="'CHEQUE'">Chèque</span>
+          <span th:case="'MOBILE'">Mobile Money</span>
+          <span th:case="'VIREMENT'">Virement bancaire</span>
+          <span th:case="*" th:text="${paiement.modePaiement}">Autre</span>
+        </strong>
+      </div>
+    </div>
+
+    <hr class="separator">
+
+    <p class="text-muted small text-center mb-0">
+      <i class="bi bi-shield-check text-success me-1"></i>
+      Ce reçu est un document officiel. Veuillez le conserver précieusement.
+    </p>
+  </div>
+
+  <!-- Pied de page -->
+  <div class="recu-footer">
+    <div class="text-muted small">
+      <i class="bi bi-calendar3 me-1"></i>
+      Émis le <span th:text="${#temporals.format(paiement.datePaiement, 'dd/MM/yyyy')}"></span>
+      <br>
+      <i class="bi bi-hash me-1"></i>Réf : <code th:text="${paiement.recuNumero}"></code>
+    </div>
+    <div class="signature">
+      <div class="sig-line"></div>
+      <p class="mb-0 fw-semibold">Le/La Trésorier(ère)</p>
+      <p th:text="${nomEtab}">HolyFlame</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

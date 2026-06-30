@@ -1,0 +1,1013 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paramètres – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .section-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .type-card{border:2px solid #e9ecef;border-radius:12px;padding:1rem;transition:border-color .2s,background .2s;cursor:pointer}
+    .type-card:has(input:checked){border-color:#0d6efd;background:#f0f5ff}
+    .type-card .type-subtitle{font-size:.72rem;color:#6c757d;margin-top:.2rem}
+    .periode-card{border-radius:10px;padding:1rem 1.25rem;border:1px solid #dee2e6}
+    .periode-card.p1{border-left:4px solid #0d6efd;background:#f8faff}
+    .periode-card.p2{border-left:4px solid #198754;background:#f6fdf9}
+    .periode-card.p3{border-left:4px solid #ffc107;background:#fffdf3}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-gear-fill text-secondary me-2"></i>Paramètres</h4>
+        <p class="text-muted small mb-0">Configuration de l'établissement</p>
+      </div>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${param.saved}" class="alert alert-success alert-dismissible d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>Paramètres enregistrés avec succès.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${classesGenerees != null}" class="alert alert-info alert-dismissible d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-magic"></i>
+      <span th:if="${classesGenerees > 0}">
+        <strong th:text="${classesGenerees}"></strong> classe(s) créée(s) pour l'année
+        <strong th:text="${p['ANNEE_SCOLAIRE'] ?: '–'}"></strong>.
+      </span>
+      <span th:unless="${classesGenerees > 0}">
+        Toutes les classes existent déjà pour cette année scolaire.
+      </span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Onglets -->
+    <ul class="nav nav-tabs mb-4" id="paramTabs">
+      <li class="nav-item">
+        <a class="nav-link" id="tab-etablissement" data-bs-toggle="tab" href="#etablissement">
+          <i class="bi bi-building me-1"></i>Établissement
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-calendrier" data-bs-toggle="tab" href="#calendrier">
+          <i class="bi bi-calendar3 me-1"></i>Calendrier scolaire
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-frais" data-bs-toggle="tab" href="#frais">
+          <i class="bi bi-cash-stack me-1"></i>Frais scolaires
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-autorisations" data-bs-toggle="tab" href="#autorisations">
+          <i class="bi bi-shield-lock me-1"></i>Autorisations
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-suivi" data-bs-toggle="tab" href="#suivi">
+          <i class="bi bi-clipboard2-data me-1"></i>Suivi des saisies
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ═══════════════════════════════════════
+           ONGLET 1 : ÉTABLISSEMENT
+           ═══════════════════════════════════════ -->
+      <div class="tab-pane fade" id="etablissement">
+        <form th:action="@{/parametres/update}" method="post" id="formEtabl">
+          <input type="hidden" name="_tab" value="etablissement">
+
+          <!-- ── Logo de l'établissement ── -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-warning-subtle"><i class="bi bi-image text-warning"></i></div>
+              <h6 class="mb-0 fw-bold">Logo de l'établissement</h6>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-4 flex-wrap">
+                <!-- Aperçu logo actuel -->
+                <div th:if="${p['LOGO_ETAB'] != null}"
+                     style="width:100px;height:100px;border:2px dashed #cbd5e1;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f8fafc;">
+                  <img th:src="@{/uploads/__${p['LOGO_ETAB']}__}" alt="Logo actuel"
+                       style="max-width:96px;max-height:96px;object-fit:contain;">
+                </div>
+                <div th:unless="${p['LOGO_ETAB'] != null}"
+                     style="width:100px;height:100px;border:2px dashed #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#94a3b8;font-size:2.5rem;">
+                  <i class="bi bi-image"></i>
+                </div>
+                <!-- Formulaire upload -->
+                <form th:action="@{/parametres/logo}" method="post" enctype="multipart/form-data"
+                      class="d-flex align-items-center gap-2 flex-wrap">
+                  <div>
+                    <label class="form-label fw-semibold mb-1">Changer le logo</label>
+                    <div class="d-flex gap-2">
+                      <input type="file" name="logo" accept="image/*" class="form-control" style="max-width:280px;">
+                      <button type="submit" class="btn btn-warning text-white">
+                        <i class="bi bi-upload me-1"></i>Enregistrer
+                      </button>
+                    </div>
+                    <div class="form-text">Formats acceptés : PNG, JPG, SVG. Taille recommandée : 200×200 px.</div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Identité -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-primary-subtle"><i class="bi bi-building text-primary"></i></div>
+              <h6 class="mb-0 fw-bold">Identité de l'établissement</h6>
+            </div>
+            <div class="card-body row g-3">
+              <div class="col-md-8">
+                <label class="form-label fw-semibold">Nom de l'établissement *</label>
+                <input type="text" name="NOM_ETABLISSEMENT" class="form-control"
+                       th:value="${p['NOM_ETABLISSEMENT'] ?: ''}"
+                       placeholder="Ex : HolyFlame Academy">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Monnaie</label>
+                <input type="text" name="MONNAIE" class="form-control"
+                       th:value="${p['MONNAIE'] ?: 'FCFA'}"
+                       placeholder="FCFA">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Devise / Credo</label>
+                <input type="text" name="DEVISE" class="form-control"
+                       th:value="${p['DEVISE'] ?: ''}"
+                       placeholder="Ex : L'excellence au service de l'avenir">
+              </div>
+            </div>
+          </div>
+
+          <!-- Coordonnées -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-info-subtle"><i class="bi bi-geo-alt text-info"></i></div>
+              <h6 class="mb-0 fw-bold">Coordonnées</h6>
+            </div>
+            <div class="card-body row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Ville</label>
+                <input type="text" name="VILLE" class="form-control"
+                       th:value="${p['VILLE'] ?: ''}" placeholder="Ex : Abidjan">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Adresse</label>
+                <input type="text" name="ADRESSE" class="form-control"
+                       th:value="${p['ADRESSE'] ?: ''}" placeholder="Rue, quartier, commune…">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Téléphone</label>
+                <input type="text" name="TELEPHONE_ECOLE" class="form-control"
+                       th:value="${p['TELEPHONE_ECOLE'] ?: ''}" placeholder="07 00 00 00 00">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Email institutionnel</label>
+                <input type="email" name="EMAIL_ECOLE" class="form-control"
+                       th:value="${p['EMAIL_ECOLE'] ?: ''}" placeholder="contact@ecole.ci">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Directeur / Contact principal</label>
+                <input type="text" name="CONTACT_PRINCIPAL" class="form-control"
+                       th:value="${p['CONTACT_PRINCIPAL'] ?: ''}"
+                       placeholder="Nom et prénom du directeur">
+              </div>
+            </div>
+          </div>
+
+          <!-- Types d'établissement -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-success-subtle"><i class="bi bi-mortarboard text-success"></i></div>
+              <div>
+                <h6 class="mb-0 fw-bold">Type d'établissement</h6>
+                <div class="text-muted small">Cochez les niveaux proposés — utilisé pour la génération automatique des classes</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-sm-6 col-md">
+                  <label class="type-card d-block">
+                    <input type="checkbox" name="TYPE_MATERNELLE" value="true" class="d-none"
+                           th:checked="${p['TYPE_MATERNELLE'] == 'true'}">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-emoji-smile fs-5 text-warning"></i>
+                      <div>
+                        <div class="fw-semibold small">Maternelle</div>
+                        <div class="type-subtitle">PS · MS · GS</div>
+                      </div>
+                      <i class="bi bi-check-circle-fill text-primary ms-auto d-none check-icon"></i>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-sm-6 col-md">
+                  <label class="type-card d-block">
+                    <input type="checkbox" name="TYPE_PRIMAIRE" value="true" class="d-none"
+                           th:checked="${p['TYPE_PRIMAIRE'] == 'true'}">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-book fs-5 text-info"></i>
+                      <div>
+                        <div class="fw-semibold small">Primaire</div>
+                        <div class="type-subtitle">CP1 · CP2 · CE1 · CE2 · CM1 · CM2</div>
+                      </div>
+                      <i class="bi bi-check-circle-fill text-primary ms-auto d-none check-icon"></i>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-sm-6 col-md">
+                  <label class="type-card d-block">
+                    <input type="checkbox" name="TYPE_COLLEGE" value="true" class="d-none"
+                           th:checked="${p['TYPE_COLLEGE'] == 'true'}">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-building fs-5 text-primary"></i>
+                      <div>
+                        <div class="fw-semibold small">Collège</div>
+                        <div class="type-subtitle">6ème · 5ème · 4ème · 3ème</div>
+                      </div>
+                      <i class="bi bi-check-circle-fill text-primary ms-auto d-none check-icon"></i>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-sm-6 col-md">
+                  <label class="type-card d-block">
+                    <input type="checkbox" name="TYPE_LYCEE" value="true" class="d-none"
+                           th:checked="${p['TYPE_LYCEE'] == 'true'}">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-mortarboard fs-5 text-success"></i>
+                      <div>
+                        <div class="fw-semibold small">Lycée</div>
+                        <div class="type-subtitle">2nde · 1ère · Terminale</div>
+                      </div>
+                      <i class="bi bi-check-circle-fill text-primary ms-auto d-none check-icon"></i>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-sm-6 col-md">
+                  <label class="type-card d-block">
+                    <input type="checkbox" name="TYPE_LYCEE_GENERAL" value="true" class="d-none"
+                           th:checked="${p['TYPE_LYCEE_GENERAL'] == 'true'}">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi bi-award fs-5 text-danger"></i>
+                      <div>
+                        <div class="fw-semibold small">Lycée Général</div>
+                        <div class="type-subtitle">2nde G · 1ère G · Term G</div>
+                      </div>
+                      <i class="bi bi-check-circle-fill text-primary ms-auto d-none check-icon"></i>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 align-items-center mb-3">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i>Enregistrer l'identité
+            </button>
+          </div>
+        </form>
+
+        <!-- Génération des classes (formulaire séparé) -->
+        <div class="bg-light border rounded-3 p-3 d-flex align-items-center gap-3">
+          <div class="flex-grow-1">
+            <div class="fw-semibold"><i class="bi bi-magic text-primary me-1"></i>Génération automatique des classes</div>
+            <div class="text-muted small mt-1">
+              Crée les classes pour les types cochés ci-dessus · Année :
+              <strong th:text="${p['ANNEE_SCOLAIRE'] ?: '–'}"></strong> ·
+              Classes actuelles :
+              <strong th:text="${#lists.size(classesAnnee)}"></strong>
+            </div>
+          </div>
+          <form th:action="@{/parametres/classes/generer}" method="post">
+            <button type="submit" class="btn btn-outline-primary btn-sm"
+                    onclick="return confirm('Générer les classes pour les types sélectionnés ?')">
+              <i class="bi bi-play-fill me-1"></i>Générer les classes
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ONGLET 2 : CALENDRIER SCOLAIRE
+           ═══════════════════════════════════════ -->
+      <div class="tab-pane fade" id="calendrier">
+        <form th:action="@{/parametres/update}" method="post">
+          <input type="hidden" name="_tab" value="calendrier">
+
+          <!-- Année en cours -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-warning-subtle"><i class="bi bi-calendar-check text-warning"></i></div>
+              <h6 class="mb-0 fw-bold">Année scolaire en cours</h6>
+            </div>
+            <div class="card-body row g-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Année scolaire</label>
+                <input type="text" name="ANNEE_SCOLAIRE" class="form-control"
+                       th:value="${p['ANNEE_SCOLAIRE'] ?: '2025-2026'}" placeholder="2025-2026">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Période actuelle</label>
+                <select name="TRIMESTRE_ACTUEL" class="form-select">
+                  <option value="1" th:selected="${p['TRIMESTRE_ACTUEL'] == '1' or p['TRIMESTRE_ACTUEL'] == null}">Période 1</option>
+                  <option value="2" th:selected="${p['TRIMESTRE_ACTUEL'] == '2'}">Période 2</option>
+                  <option value="3" th:selected="${p['TRIMESTRE_ACTUEL'] == '3'}">Période 3</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Découpage</label>
+                <select name="DECOUPAGE" class="form-select" id="selDecoupage" onchange="updatePeriode3()">
+                  <option value="TRIMESTRES" th:selected="${p['DECOUPAGE'] != 'SEMESTRES'}">
+                    Trimestres (3 périodes)
+                  </option>
+                  <option value="SEMESTRES" th:selected="${p['DECOUPAGE'] == 'SEMESTRES'}">
+                    Semestres (2 périodes)
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Périodes et examens -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+              <div class="section-icon bg-primary-subtle"><i class="bi bi-calendar3-range text-primary"></i></div>
+              <h6 class="mb-0 fw-bold">Périodes et examens</h6>
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+
+              <!-- Période 1 -->
+              <div class="periode-card p1">
+                <div class="fw-bold text-primary mb-2 small">
+                  <i class="bi bi-1-circle-fill me-1"></i>1ère période
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label small">Début</label>
+                    <input type="text" name="T1_DEBUT" class="form-control form-control-sm"
+                           th:value="${p['T1_DEBUT'] ?: ''}" placeholder="01/10/2025">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Fin</label>
+                    <input type="text" name="T1_FIN" class="form-control form-control-sm"
+                           th:value="${p['T1_FIN'] ?: ''}" placeholder="31/12/2025">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Date d'examens</label>
+                    <input type="text" name="EXAMEN_T1" class="form-control form-control-sm"
+                           th:value="${p['EXAMEN_T1'] ?: ''}" placeholder="15/12/2025">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Période 2 -->
+              <div class="periode-card p2">
+                <div class="fw-bold text-success mb-2 small">
+                  <i class="bi bi-2-circle-fill me-1"></i>2e période
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label small">Début</label>
+                    <input type="text" name="T2_DEBUT" class="form-control form-control-sm"
+                           th:value="${p['T2_DEBUT'] ?: ''}" placeholder="06/01/2026">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Fin</label>
+                    <input type="text" name="T2_FIN" class="form-control form-control-sm"
+                           th:value="${p['T2_FIN'] ?: ''}" placeholder="31/03/2026">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Date d'examens</label>
+                    <input type="text" name="EXAMEN_T2" class="form-control form-control-sm"
+                           th:value="${p['EXAMEN_T2'] ?: ''}" placeholder="20/03/2026">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Période 3 (trimestres seulement) -->
+              <div class="periode-card p3" id="divPeriode3">
+                <div class="fw-bold text-warning mb-2 small">
+                  <i class="bi bi-3-circle-fill me-1"></i>3e période
+                  <span class="badge bg-warning-subtle text-warning fw-normal ms-1" style="font-size:.65rem">Trimestres uniquement</span>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label small">Début</label>
+                    <input type="text" name="T3_DEBUT" class="form-control form-control-sm"
+                           th:value="${p['T3_DEBUT'] ?: ''}" placeholder="14/04/2026">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Fin</label>
+                    <input type="text" name="T3_FIN" class="form-control form-control-sm"
+                           th:value="${p['T3_FIN'] ?: ''}" placeholder="30/06/2026">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small">Examen final</label>
+                    <input type="text" name="EXAMEN_FINAL" class="form-control form-control-sm"
+                           th:value="${p['EXAMEN_FINAL'] ?: ''}" placeholder="15/06/2026">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>Enregistrer le calendrier
+          </button>
+        </form>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ONGLET 3 : FRAIS SCOLAIRES
+           ═══════════════════════════════════════ -->
+      <div class="tab-pane fade" id="frais">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">Configuration des frais scolaires</h6>
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjouterFrais">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter un frais
+          </button>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+          <div th:if="${#lists.isEmpty(frais)}" class="text-center text-muted py-5">
+            <i class="bi bi-cash fs-1 d-block mb-2 opacity-25"></i>
+            <p>Aucun frais configuré.</p>
+          </div>
+          <div class="table-responsive" th:unless="${#lists.isEmpty(frais)}">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Désignation</th>
+                  <th>Type</th>
+                  <th>Montant</th>
+                  <th>Échéance</th>
+                  <th>Niveau</th>
+                  <th>Obligatoire</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="f : ${frais}">
+                  <td class="fw-semibold" th:text="${f.designation}"></td>
+                  <td><span class="badge bg-primary-subtle text-primary" th:text="${f.typeFrais}"></span></td>
+                  <td class="fw-bold" th:text="${#numbers.formatDecimal(f.montant,0,'COMMA',0,'POINT') + ' ' + (p['MONNAIE'] ?: 'FCFA')}"></td>
+                  <td class="text-muted" th:text="${f.echeance ?: '–'}"></td>
+                  <td th:text="${f.niveauCible ?: 'Tous'}"></td>
+                  <td>
+                    <span th:if="${f.obligatoire}" class="badge bg-danger-subtle text-danger">Obligatoire</span>
+                    <span th:unless="${f.obligatoire}" class="badge bg-secondary-subtle text-secondary">Optionnel</span>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                              th:attr="data-bs-target='#editFrais'+${f.id}" title="Modifier">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <form th:action="@{/parametres/frais/{id}/supprimer(id=${f.id})}" method="post"
+                            onsubmit="return confirm('Supprimer ce frais ?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                    <!-- Modal modifier frais -->
+                    <div class="modal fade" th:id="'editFrais'+${f.id}" tabindex="-1">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h6 class="modal-title fw-bold">Modifier le frais</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                          </div>
+                          <form th:action="@{/parametres/frais/{id}/modifier(id=${f.id})}" method="post">
+                            <div class="modal-body row g-3">
+                              <div class="col-12">
+                                <label class="form-label">Désignation</label>
+                                <input type="text" name="designation" class="form-control" required th:value="${f.designation}">
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label">Type</label>
+                                <select name="typeFrais" class="form-select" required>
+                                  <option th:selected="${f.typeFrais=='INSCRIPTION'}" value="INSCRIPTION">Inscription</option>
+                                  <option th:selected="${f.typeFrais=='SCOLARITE'}" value="SCOLARITE">Scolarité</option>
+                                  <option th:selected="${f.typeFrais=='TRANSPORT'}" value="TRANSPORT">Transport</option>
+                                  <option th:selected="${f.typeFrais=='RESTAURATION'}" value="RESTAURATION">Restauration</option>
+                                  <option th:selected="${f.typeFrais=='AUTRE'}" value="AUTRE">Autre</option>
+                                </select>
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label">Montant</label>
+                                <input type="number" name="montant" class="form-control" required min="0" step="100" th:value="${f.montant}">
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label">Échéance</label>
+                                <input type="text" name="echeance" class="form-control" placeholder="Ex: Octobre, T1…" th:value="${f.echeance}">
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label">Niveau cible</label>
+                                <input type="text" name="niveauCible" class="form-control" placeholder="Vide = tous" th:value="${f.niveauCible}">
+                              </div>
+                              <div class="col-12">
+                                <div class="form-check">
+                                  <input type="checkbox" name="obligatoire" value="true" class="form-check-input" th:checked="${f.obligatoire}">
+                                  <label class="form-check-label">Frais obligatoire</label>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                              <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ONGLET 4 : AUTORISATIONS ENSEIGNANTS
+           ═══════════════════════════════════════ -->
+      <div class="tab-pane fade" id="autorisations">
+
+        <!-- Messages flash -->
+        <div th:if="${successMsg}" class="alert alert-success alert-dismissible d-flex gap-2 align-items-center mb-3">
+          <i class="bi bi-check-circle-fill"></i><span th:text="${successMsg}"></span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${erreurMsg}" class="alert alert-danger alert-dismissible d-flex gap-2 align-items-center mb-3">
+          <i class="bi bi-exclamation-triangle-fill"></i><span th:text="${erreurMsg}"></span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${autorisationMsg}" class="alert alert-info alert-dismissible d-flex gap-2 align-items-center mb-3">
+          <i class="bi bi-info-circle-fill"></i><span th:text="${autorisationMsg}"></span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Délégation direction -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white py-3 d-flex align-items-center gap-3">
+            <div class="section-icon bg-danger-subtle"><i class="bi bi-person-badge text-danger"></i></div>
+            <div class="flex-grow-1">
+              <h6 class="mb-0 fw-bold">Délégation — Accès direction</h6>
+              <div class="text-muted small">Permet au directeur (Personnel.fonction=DIRECTEUR ayant un compte) d'accéder au suivi des saisies.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form th:action="@{/parametres/delegation}" method="post" class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" name="delegationDirection" value="true"
+                       id="cbDelegation" th:checked="${delegationActive}"
+                       onchange="this.form.submit()">
+                <label class="form-check-label fw-semibold" for="cbDelegation">
+                  Délégation active
+                </label>
+              </div>
+              <span th:if="${delegationActive}" class="badge bg-success">Activée</span>
+              <span th:unless="${delegationActive}" class="badge bg-secondary">Désactivée</span>
+            </form>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-start gap-3 mb-4">
+          <div class="section-icon bg-warning-subtle" style="margin-top:2px"><i class="bi bi-shield-lock text-warning"></i></div>
+          <div>
+            <h6 class="mb-1 fw-bold">Autorisations des enseignants</h6>
+            <p class="text-muted small mb-0">
+              Basé sur les fiches Personnel (fonction=ENSEIGNANT). Associez un compte utilisateur par email pour activer la saisie de notes.
+            </p>
+          </div>
+        </div>
+
+        <!-- Aucun enseignant dans Personnel -->
+        <div th:if="${#lists.isEmpty(personnelsEnseignants)}" class="text-center text-muted py-5 bg-white rounded-3 border">
+          <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+          <p>Aucun enseignant dans les fiches Personnel.</p>
+          <small>Ajoutez des fiches Personnel avec la fonction <strong>ENSEIGNANT</strong>.</small>
+        </div>
+
+        <!-- Recherche enseignant + cartes -->
+        <div th:unless="${#lists.isEmpty(personnelsEnseignants)}">
+
+          <!-- Champ de recherche -->
+          <div class="input-group mb-3">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" id="rechercheEnseignant" class="form-control border-start-0 ps-0"
+                   placeholder="Rechercher un enseignant par nom, prénom ou email…"
+                   oninput="filtrerEnseignants(this.value)">
+            <span class="input-group-text bg-white text-muted small" id="compteurEnseignants"></span>
+          </div>
+
+        <!-- Cartes enseignants -->
+        <div class="d-flex flex-column gap-3" id="listeEnseignants">
+          <div class="card border-0 shadow-sm enseignant-card"
+               th:each="pers : ${personnelsEnseignants}"
+               th:attr="data-nom=${pers.nom},data-prenom=${pers.prenom},data-email=${pers.email ?: ''}">
+            <div th:with="compte=${compteParPersonnelId[pers.id]}">
+            <div class="card-header bg-white py-3 d-flex align-items-center gap-3 flex-wrap">
+              <div style="width:38px;height:38px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a73e8;flex-shrink:0"
+                   th:text="${#strings.substring(pers.nom,0,1) + #strings.substring(pers.prenom,0,1)}"></div>
+              <div class="flex-grow-1">
+                <div class="fw-bold" th:text="${pers.nom + ' ' + pers.prenom}"></div>
+                <div class="text-muted small" th:text="${pers.email ?: '–'}"></div>
+              </div>
+              <!-- Badge compte -->
+              <span th:if="${compte != null}" class="badge bg-success-subtle text-success">
+                <i class="bi bi-person-check me-1"></i>Compte actif
+              </span>
+              <span th:unless="${compte != null}" class="badge bg-danger-subtle text-danger">
+                <i class="bi bi-person-x me-1"></i>Pas de compte
+              </span>
+              <!-- Badge autorisations -->
+              <span th:if="${compte != null}" class="badge bg-primary-subtle text-primary"
+                    th:text="${(authByEnseignant[compte.id] != null ? #lists.size(authByEnseignant[compte.id]) : 0) + ' autorisation(s)'}"></span>
+            </div>
+            <div class="card-body">
+
+              <!-- Code d'accès RH + Reset mot de passe -->
+              <div class="d-flex flex-wrap gap-3 mb-3 align-items-start">
+                <form th:action="@{/parametres/personnel/{id}/codeAcces(id=${pers.id})}" method="post"
+                      class="d-flex align-items-center gap-2">
+                  <label class="form-label small fw-semibold mb-0 text-nowrap">Code RH :</label>
+                  <input type="text" name="codeAcces" class="form-control form-control-sm" style="max-width:140px"
+                         th:value="${pers.codeAcces ?: ''}" placeholder="EMP-001">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" title="Enregistrer le code RH">
+                    <i class="bi bi-save"></i>
+                  </button>
+                </form>
+                <form th:if="${compte != null}"
+                      th:action="@{/parametres/personnel/{id}/reset-mdp(id=${pers.id})}" method="post"
+                      class="d-flex align-items-center gap-2">
+                  <label class="form-label small fw-semibold mb-0 text-nowrap">Nouveau mot de passe :</label>
+                  <input type="password" name="motDePasse" class="form-control form-control-sm" style="max-width:160px"
+                         placeholder="Nouveau mdp" required minlength="6">
+                  <button type="submit" class="btn btn-outline-warning btn-sm" title="Réinitialiser le mot de passe">
+                    <i class="bi bi-key-fill"></i>
+                  </button>
+                </form>
+              </div>
+
+              <!-- Création de compte si pas de compte -->
+              <div th:unless="${compte != null}">
+                <div th:if="${pers.email != null and !#strings.isEmpty(pers.email)}"
+                     class="border rounded-3 p-3 mb-3" style="border-color:#ffc107 !important;background:#fffdf3">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-person-plus-fill text-warning fs-5"></i>
+                    <span class="fw-semibold small">Créer un compte de connexion pour cet enseignant</span>
+                  </div>
+                  <p class="text-muted small mb-2">
+                    Email détecté : <strong th:text="${pers.email}"></strong><br>
+                    Définissez un mot de passe temporaire — l'enseignant pourra se connecter immédiatement.
+                  </p>
+                  <form th:action="@{/parametres/personnel/{id}/creer-compte(id=${pers.id})}" method="post"
+                        class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="password" name="motDePasse" class="form-control form-control-sm"
+                           style="max-width:200px" placeholder="Mot de passe temporaire" required minlength="6">
+                    <button type="submit" class="btn btn-warning btn-sm">
+                      <i class="bi bi-person-check-fill me-1"></i>Créer le compte
+                    </button>
+                  </form>
+                </div>
+                <div th:unless="${pers.email != null and !#strings.isEmpty(pers.email)}"
+                     class="alert alert-secondary py-2 small mb-3">
+                  <i class="bi bi-envelope-slash me-1"></i>
+                  Aucun email sur cette fiche. Ajoutez un email dans
+                  <a th:href="@{/personnel}" class="alert-link">la fiche Personnel</a> pour pouvoir créer un compte.
+                </div>
+              </div>
+
+              <!-- Autorisations actuelles (seulement si compte existe) -->
+              <div th:if="${compte != null}">
+                <div class="text-muted small fw-semibold mb-2">Accès actuels :</div>
+                <div th:if="${authByEnseignant[compte.id] == null or #lists.isEmpty(authByEnseignant[compte.id])}"
+                     class="text-muted small fst-italic mb-3">
+                  Aucune autorisation — cet enseignant ne peut pas saisir de notes.
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3" th:unless="${authByEnseignant[compte.id] == null or #lists.isEmpty(authByEnseignant[compte.id])}">
+                  <div class="d-inline-flex align-items-center gap-1 rounded-pill px-3 py-1 border bg-light"
+                       th:each="auth : ${authByEnseignant[compte.id]}">
+                    <i class="bi bi-book-fill text-primary small"></i>
+                    <span class="small fw-semibold" th:text="${matiereMap[auth.matiereId]?.nom ?: '?'}"></span>
+                    <span class="text-muted small">→</span>
+                    <i class="bi bi-building-fill text-success small"></i>
+                    <span class="small" th:text="${classeMap[auth.classeId]?.nom ?: '?'}"></span>
+                    <form th:action="@{/parametres/autorisations/{id}/supprimer(id=${auth.id})}" method="post" class="m-0">
+                      <button type="submit" class="btn btn-link btn-sm p-0 ms-1 text-danger" title="Retirer"
+                              onclick="return confirm('Retirer cette autorisation ?')">
+                        <i class="bi bi-x-circle-fill"></i>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Formulaire ajout autorisation -->
+                <form th:action="@{/parametres/autorisations/ajouter}" method="post"
+                      class="row g-2 align-items-end border-top pt-3">
+                  <input type="hidden" name="enseignantId" th:value="${compte.id}">
+                  <div class="col-sm-5">
+                    <label class="form-label small fw-semibold">Matière</label>
+                    <select name="matiereId" class="form-select form-select-sm" required>
+                      <option value="">— Choisir —</option>
+                      <option th:each="m : ${matieres}" th:value="${m.id}" th:text="${m.nom}"></option>
+                    </select>
+                  </div>
+                  <div class="col-sm-5">
+                    <label class="form-label small fw-semibold">Classe</label>
+                    <select name="classeId" class="form-select form-select-sm" required>
+                      <option value="">— Choisir —</option>
+                      <option th:each="c : ${toutesClasses}" th:value="${c.id}" th:text="${c.nom}"></option>
+                    </select>
+                  </div>
+                  <div class="col-sm-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                      <i class="bi bi-plus-lg me-1"></i>Ajouter
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+            </div><!-- /card-body -->
+            </div><!-- /th:with -->
+          </div>
+        </div><!-- /listeEnseignants -->
+        </div><!-- /recherche+cartes wrapper -->
+
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ONGLET 5 : SUIVI DES SAISIES
+           ═══════════════════════════════════════ -->
+      <div class="tab-pane fade" id="suivi">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h6 class="fw-bold mb-1"><i class="bi bi-clipboard2-data text-primary me-2"></i>Suivi des saisies de notes</h6>
+            <p class="text-muted small mb-0">État des saisies par enseignant, type d'examen et trimestre.</p>
+          </div>
+          <a href="/direction/suivi" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrows-fullscreen me-1"></i>Vue plein écran
+          </a>
+        </div>
+
+        <!-- Statistiques enseignants -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+              <div class="fs-2 fw-bold text-primary"
+                   th:text="${#lists.size(suiviEnseignants)}">0</div>
+              <div class="text-muted small">Lignes enseignants</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+              <div class="fs-2 fw-bold text-success"
+                   th:text="${#lists.size(suiviEnseignants.?[hasCompte == true and matiereNom != null])}">0</div>
+              <div class="text-muted small">Avec matière assignée</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-3">
+              <div class="fs-2 fw-bold text-danger"
+                   th:text="${#lists.size(suiviEnseignants.?[matiereNom == null])}">0</div>
+              <div class="text-muted small">Sans matière assignée</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Légende -->
+        <div class="d-flex align-items-center gap-3 mb-3 flex-wrap small">
+          <span class="fw-semibold text-muted">Légende :</span>
+          <span><span class="badge bg-success-subtle text-success me-1">✓</span>Complet (tous les élèves)</span>
+          <span><span class="badge bg-warning-subtle text-warning me-1">⚠</span>En cours (partiel)</span>
+          <span><span class="badge bg-danger-subtle text-danger me-1">✗</span>Non rempli</span>
+          <span><span class="badge bg-secondary-subtle text-secondary me-1">—</span>Non applicable</span>
+        </div>
+
+        <!-- Tableau suivi par enseignant -->
+        <div class="card border-0 shadow-sm">
+          <div th:if="${#lists.isEmpty(suiviEnseignants)}" class="text-center text-muted py-5">
+            <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+            Aucun enseignant enregistré dans le personnel.
+          </div>
+          <div th:unless="${#lists.isEmpty(suiviEnseignants)}" class="table-responsive">
+            <table class="table table-bordered table-sm align-middle mb-0" style="font-size:.82rem">
+              <thead class="table-dark">
+                <tr>
+                  <th rowspan="2" class="align-middle" style="min-width:140px">Enseignant</th>
+                  <th rowspan="2" class="align-middle text-center" style="width:50px">Compte</th>
+                  <th rowspan="2" class="align-middle" style="min-width:110px">Matière</th>
+                  <th rowspan="2" class="align-middle" style="min-width:80px">Classe</th>
+                  <th rowspan="2" class="align-middle text-center" style="width:55px">Élèves</th>
+                  <th colspan="3" class="text-center border-start">Devoir</th>
+                  <th colspan="3" class="text-center border-start">Examen</th>
+                  <th colspan="3" class="text-center border-start">Participation</th>
+                </tr>
+                <tr class="table-secondary">
+                  <th class="text-center border-start">T1</th><th class="text-center">T2</th><th class="text-center">T3</th>
+                  <th class="text-center border-start">T1</th><th class="text-center">T2</th><th class="text-center">T3</th>
+                  <th class="text-center border-start">T1</th><th class="text-center">T2</th><th class="text-center">T3</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="row : ${suiviEnseignants}">
+                  <!-- Enseignant -->
+                  <td class="fw-semibold" th:text="${row['enseignantNom']}"></td>
+                  <!-- Compte -->
+                  <td class="text-center">
+                    <span th:if="${row['hasCompte']}" class="text-success" title="Compte actif"><i class="bi bi-person-check-fill"></i></span>
+                    <span th:unless="${row['hasCompte']}" class="text-danger" title="Pas de compte"><i class="bi bi-person-x-fill"></i></span>
+                  </td>
+                  <!-- Matière / Classe -->
+                  <td>
+                    <span th:if="${row['matiereNom'] != null}" th:text="${row['matiereNom']}"></span>
+                    <span th:if="${row['matiereNom'] == null}" class="text-muted fst-italic small">Non assignée</span>
+                  </td>
+                  <td th:text="${row['classeNom'] ?: '—'}"></td>
+                  <!-- Total élèves -->
+                  <td class="text-center text-muted small" th:text="${row['totalEleves'] ?: '—'}"></td>
+
+                  <!-- Devoir T1 T2 T3 -->
+                  <th:block th:each="t : ${#numbers.sequence(1,3)}">
+                    <td th:if="${row['matiereNom'] == null}" class="text-center text-muted bg-light border-start">—</td>
+                    <td th:unless="${row['matiereNom'] == null}" class="text-center"
+                        th:classappend="${t == 1} ? 'border-start' : ''">
+                      <span th:with="st=${row['DEVOIR_T' + t]}"
+                            th:classappend="${st == 'COMPLET'} ? 'badge bg-success-subtle text-success' :
+                                            (${st == 'EN_COURS'} ? 'badge bg-warning-subtle text-warning' :
+                                            'badge bg-danger-subtle text-danger')"
+                            th:class="${'badge ' + (st == 'COMPLET' ? 'bg-success-subtle text-success' : (st == 'EN_COURS' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger'))}"
+                            th:text="${st == 'COMPLET'} ? '✓' : (${st == 'EN_COURS'} ? (${row['DEVOIR_T' + t + '_nb']} + '') : '✗')"
+                            th:title="${row['DEVOIR_T' + t + '_nb'] ?: 0} + '/' + ${row['totalEleves']} + ' élèves'">
+                      </span>
+                    </td>
+                  </th:block>
+
+                  <!-- Examen T1 T2 T3 -->
+                  <th:block th:each="t : ${#numbers.sequence(1,3)}">
+                    <td th:if="${row['matiereNom'] == null}" class="text-center text-muted bg-light border-start">—</td>
+                    <td th:unless="${row['matiereNom'] == null}" class="text-center"
+                        th:classappend="${t == 1} ? 'border-start' : ''">
+                      <span th:with="st=${row['EXAMEN_T' + t]}"
+                            th:class="${'badge ' + (st == 'COMPLET' ? 'bg-success-subtle text-success' : (st == 'EN_COURS' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger'))}"
+                            th:text="${st == 'COMPLET'} ? '✓' : (${st == 'EN_COURS'} ? (${row['EXAMEN_T' + t + '_nb']} + '') : '✗')"
+                            th:title="${row['EXAMEN_T' + t + '_nb'] ?: 0} + '/' + ${row['totalEleves']} + ' élèves'">
+                      </span>
+                    </td>
+                  </th:block>
+
+                  <!-- Participation T1 T2 T3 -->
+                  <th:block th:each="t : ${#numbers.sequence(1,3)}">
+                    <td th:if="${row['matiereNom'] == null}" class="text-center text-muted bg-light border-start">—</td>
+                    <td th:unless="${row['matiereNom'] == null}" class="text-center"
+                        th:classappend="${t == 1} ? 'border-start' : ''">
+                      <span th:with="st=${row['PARTICIPATION_T' + t]}"
+                            th:class="${'badge ' + (st == 'COMPLET' ? 'bg-success-subtle text-success' : (st == 'EN_COURS' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger'))}"
+                            th:text="${st == 'COMPLET'} ? '✓' : (${st == 'EN_COURS'} ? (${row['PARTICIPATION_T' + t + '_nb']} + '') : '✗')"
+                            th:title="${row['PARTICIPATION_T' + t + '_nb'] ?: 0} + '/' + ${row['totalEleves']} + ' élèves'">
+                      </span>
+                    </td>
+                  </th:block>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div>
+</div>
+
+<!-- Modal Ajouter Frais -->
+<div class="modal fade" id="modalAjouterFrais" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i>Ajouter un frais</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form th:action="@{/parametres/frais}" method="post">
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label">Désignation</label>
+            <input type="text" name="designation" class="form-control" required placeholder="Ex: Frais de scolarité T1">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Type</label>
+            <select name="typeFrais" class="form-select" required>
+              <option value="INSCRIPTION">Inscription</option>
+              <option value="SCOLARITE">Scolarité</option>
+              <option value="TRANSPORT">Transport</option>
+              <option value="RESTAURATION">Restauration</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Montant</label>
+            <input type="number" name="montant" class="form-control" required min="0" step="100" placeholder="50000">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Échéance</label>
+            <input type="text" name="echeance" class="form-control" placeholder="Ex: Octobre, T1…">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Niveau cible</label>
+            <input type="text" name="niveauCible" class="form-control" placeholder="Vide = tous niveaux">
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              <input type="checkbox" name="obligatoire" value="true" class="form-check-input" id="cbOblig">
+              <label class="form-check-label" for="cbOblig">Frais obligatoire</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Activation de l'onglet via ?tab= ──
+(function() {
+  var tab = new URLSearchParams(window.location.search).get('tab') || 'etablissement';
+  var el = document.getElementById('tab-' + tab);
+  if (el) { el.click(); }
+})();
+
+// ── Afficher / masquer la 3e période selon le découpage ──
+function updatePeriode3() {
+  var sel = document.getElementById('selDecoupage');
+  var div = document.getElementById('divPeriode3');
+  if (sel && div) {
+    div.style.display = sel.value === 'SEMESTRES' ? 'none' : '';
+  }
+}
+// Appel au chargement (lecture de la valeur actuelle)
+document.addEventListener('DOMContentLoaded', function() {
+  updatePeriode3();
+
+  // ── Visuels type-card : icône de coche ──
+  document.querySelectorAll('.type-card').forEach(function(card) {
+    var cb = card.querySelector('input[type="checkbox"]');
+    var icon = card.querySelector('.check-icon');
+    function refresh() {
+      card.style.borderColor = cb.checked ? '#0d6efd' : '';
+      card.style.background = cb.checked ? '#f0f5ff' : '';
+      if (icon) icon.classList.toggle('d-none', !cb.checked);
+    }
+    refresh();
+    // Le label natif gère déjà le toggle de la case — on met juste à jour le visuel
+    cb.addEventListener('change', refresh);
+  });
+});
+
+// ── Recherche enseignant dans l'onglet Autorisations ──
+function filtrerEnseignants(q) {
+  var terme = q.trim().toLowerCase();
+  var cartes = document.querySelectorAll('#listeEnseignants .enseignant-card');
+  var visibles = 0;
+  cartes.forEach(function(card) {
+    var nom    = (card.dataset.nom    || '').toLowerCase();
+    var prenom = (card.dataset.prenom || '').toLowerCase();
+    var email  = (card.dataset.email  || '').toLowerCase();
+    var match  = !terme || nom.includes(terme) || prenom.includes(terme) || email.includes(terme);
+    card.style.display = match ? '' : 'none';
+    if (match) visibles++;
+  });
+  var cpt = document.getElementById('compteurEnseignants');
+  if (cpt) {
+    cpt.textContent = terme ? visibles + ' / ' + cartes.length : '';
+  }
+}
+
+// Initialiser le compteur au chargement
+document.addEventListener('DOMContentLoaded', function() {
+  var cpt = document.getElementById('compteurEnseignants');
+  var cartes = document.querySelectorAll('#listeEnseignants .enseignant-card');
+  if (cpt && cartes.length) cpt.textContent = '';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Uploads utilisateur — ne pas versionner ###
+holyflame_uploads/
+uploads/
+
+### Logs ###
+*.log
+logs/
+
+### Secrets ###
+application-prod.properties
+application-prod.yml
+*.p12
+*.jks
+.env*
+
+### Logs et fichiers temporaires de test ###
+server_log.txt
+server_err.txt
+*.gz
+~$*
+
+### Outils locaux (non lies au code source) ###
+.claude/
+.sixth/
+.github/modernize/
+secretariat-debug.html

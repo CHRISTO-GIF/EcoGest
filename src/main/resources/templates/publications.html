@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Publications – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .pub-card{border-left:4px solid #dee2e6}
+    .pub-card.PROGRAMME{border-left-color:#0d6efd}
+    .pub-card.ANNONCE{border-left-color:#fd7e14}
+    .pub-card.EVENEMENT{border-left-color:#198754}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Publications</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-megaphone-fill text-primary me-2"></i>Publications</h4>
+        <p class="text-muted small mb-0">Publiez des annonces, programmes et événements visibles par les élèves sur leur portail</p>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPublication">
+        <i class="bi bi-plus-lg me-1"></i>Nouvelle publication
+      </button>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show mb-3">
+      <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Liste des publications -->
+    <div th:if="${#lists.isEmpty(publications)}" class="text-center text-muted py-5">
+      <i class="bi bi-megaphone fs-1 d-block mb-3 opacity-25"></i>
+      <p>Aucune publication pour le moment.</p>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPublication">
+        <i class="bi bi-plus-lg me-1"></i>Créer la première publication
+      </button>
+    </div>
+
+    <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(publications)}">
+      <div class="card border-0 shadow-sm pub-card"
+           th:each="pub : ${publications}"
+           th:classappend="${pub.categorie}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <!-- Badge catégorie -->
+                <span class="badge"
+                      th:classappend="${pub.categorie == 'PROGRAMME'} ? 'text-bg-primary' :
+                                      (${pub.categorie == 'ANNONCE'} ? 'text-bg-warning' : 'text-bg-success')"
+                      th:text="${pub.categorie}"></span>
+                <!-- Destinataires -->
+                <span th:if="${pub.classeId != null}" class="badge bg-secondary-subtle text-secondary small">
+                  <i class="bi bi-people-fill me-1"></i>
+                  <span th:each="c : ${classes}" th:if="${c.id == pub.classeId}" th:text="${c.nom}"></span>
+                </span>
+                <span th:if="${pub.classeId == null}" class="badge bg-secondary-subtle text-secondary small">
+                  <i class="bi bi-globe me-1"></i>Tous les élèves
+                </span>
+                <!-- Date -->
+                <span class="text-muted small">
+                  <i class="bi bi-clock me-1"></i>
+                  <span th:text="${#temporals.format(pub.datePublication, 'dd/MM/yyyy HH:mm')}"></span>
+                </span>
+                <span class="text-muted small" th:if="${pub.publiePar != null}">
+                  — par <em th:text="${pub.publiePar}"></em>
+                </span>
+              </div>
+              <h6 class="fw-bold mb-1" th:text="${pub.titre}"></h6>
+              <p class="mb-0 small text-muted" style="white-space:pre-wrap" th:text="${pub.contenu}"></p>
+            </div>
+            <form th:action="@{/publications/{id}/supprimer(id=${pub.id})}" method="post" class="flex-shrink-0"
+                  onsubmit="return confirm('Supprimer cette publication ?')">
+              <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Nouvelle Publication -->
+<div class="modal fade" id="modalPublication" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form th:action="@{/publications}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-megaphone-fill me-2 text-primary"></i>Nouvelle publication</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Titre *</label>
+            <input type="text" name="titre" class="form-control" required placeholder="Ex : Programme du 2e trimestre">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Catégorie *</label>
+            <select name="categorie" class="form-select" required>
+              <option value="PROGRAMME">Programme</option>
+              <option value="ANNONCE">Annonce</option>
+              <option value="EVENEMENT">Événement</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Contenu *</label>
+            <textarea name="contenu" class="form-control" rows="5" required
+                      placeholder="Décrivez le programme, l'annonce ou l'événement…"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Destinataires</label>
+            <select name="classeId" class="form-select">
+              <option value="">Tous les élèves de l'école</option>
+              <option th:each="c : ${classes}" th:value="${c.id}"
+                      th:text="${c.nom + ' (' + (c.anneeScolaire ?: '') + ')'}"></option>
+            </select>
+            <div class="form-text">Laissez vide pour publier à toute l'école.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send-fill me-1"></i>Publier
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes & Bulletins – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Notes &amp; Bulletins</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold mb-0"><i class="bi bi-journal-text text-primary me-2"></i>Notes &amp; Bulletins</h4>
+      <div class="d-flex gap-2">
+        <a th:href="@{/notes/saisie}" class="btn btn-warning btn-sm">
+          <i class="bi bi-lightning-fill me-1"></i>Saisie rapide
+        </a>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNote">
+          <i class="bi bi-plus-circle me-1"></i>Ajouter une note
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtre trimestre -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body py-2">
+        <form th:action="@{/notes}" method="get" class="d-flex align-items-center gap-3 flex-wrap">
+          <label class="small fw-semibold mb-0">Filtrer :</label>
+          <select name="trimestre" class="form-select form-select-sm" style="width:160px" onchange="this.form.submit()">
+            <option value="">Tous les trimestres</option>
+            <option value="1" th:selected="${trimestreFiltre == 1}">1er trimestre</option>
+            <option value="2" th:selected="${trimestreFiltre == 2}">2e trimestre</option>
+            <option value="3" th:selected="${trimestreFiltre == 3}">3e trimestre</option>
+          </select>
+          <span class="badge bg-secondary" th:text="${#lists.size(notes) + ' résultats'}"></span>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tableau des notes -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <div th:if="${#lists.isEmpty(notes)}" class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1 d-block mb-2"></i>Aucune note enregistrée.
+        </div>
+        <div th:unless="${#lists.isEmpty(notes)}" class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Élève</th><th>Classe</th><th>Matière</th><th>Note /20</th><th>Coeff</th><th>Type</th><th>Trimestre</th><th>Date</th><th>Bulletin</th><th class="text-end">Action</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="n : ${notes}">
+                <td class="fw-semibold" th:text="${n.eleve?.nom + ' ' + n.eleve?.prenom}"></td>
+                <td><span class="badge bg-primary-subtle text-primary" th:text="${n.eleve?.classe?.nom}"></span></td>
+                <td class="fw-semibold" th:text="${n.matiere?.nom}"></td>
+                <td>
+                  <span class="fw-bold"
+                        th:classappend="${n.valeur != null and n.valeur >= 10} ? 'text-success' : 'text-danger'"
+                        th:text="${n.valeur}"></span>
+                </td>
+                <td class="small text-muted" th:text="${n.coefficient}"></td>
+                <td><span class="badge bg-secondary-subtle text-secondary" th:text="${n.type}"></span></td>
+                <td class="small">T<span th:text="${n.trimestre}"></span></td>
+                <td class="small text-muted" th:text="${n.dateEvaluation != null ? #temporals.format(n.dateEvaluation,'dd/MM/yyyy') : '–'}"></td>
+                <td>
+                  <a th:href="@{/notes/bulletin/{id}(id=${n.eleve?.id}, trimestre=${n.trimestre})}"
+                     class="btn btn-outline-primary btn-sm" title="Voir bulletin">
+                    <i class="bi bi-file-earmark-text"></i>
+                  </a>
+                </td>
+                <td class="text-end">
+                  <form th:action="@{/notes/{id}/supprimer(id=${n.id})}" method="post" class="d-inline" onsubmit="return confirm('Supprimer ?')">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter Note -->
+<div class="modal fade" id="modalNote" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form th:action="@{/notes}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-journal-plus me-2 text-primary"></i>Ajouter une note</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Élève *</label>
+              <select name="eleveId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="e : ${eleves}" th:value="${e.id}" th:text="${e.nom + ' ' + e.prenom + ' (' + e.classe?.nom + ')'}"></option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Matière *</label>
+              <select name="matiereId" class="form-select" required>
+                <option value="">— Choisir —</option>
+                <option th:each="m : ${matieres}" th:value="${m.id}" th:text="${m.nom + ' (coeff ' + m.coefficient + ')'}"></option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Note /20 *</label>
+              <input type="number" name="valeur" class="form-control" min="0" max="20" step="0.25" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Coefficient</label>
+              <input type="number" name="coefficient" class="form-control" min="0.5" max="10" step="0.5" placeholder="Selon matière">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Type *</label>
+              <select name="type" class="form-select" required>
+                <option value="DEVOIR">Devoir</option>
+                <option value="EXAMEN">Examen</option>
+                <option value="PARTICIPATION">Participation</option>
+                <option value="CONTROLE">Contrôle</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Trimestre *</label>
+              <select name="trimestre" class="form-select" required>
+                <option value="1">1er trimestre</option>
+                <option value="2">2e trimestre</option>
+                <option value="3">3e trimestre</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Date de l'évaluation</label>
+              <input type="date" name="dateEvaluation" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Commentaire</label>
+              <input type="text" name="commentaire" class="form-control" placeholder="Très bon travail…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

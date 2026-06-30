@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Archives – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .doc-icon{font-size:2rem}
+    .filter-btn.active{background:#0b1f3a!important;color:#fff!important}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-archive-fill text-primary me-2"></i>Archivage Numérique</h4>
+        <p class="text-muted small mb-0"><span th:text="${totalDocs}">0</span> document(s) archivé(s)</p>
+      </div>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalArchiver">
+        <i class="bi bi-cloud-upload-fill me-1"></i>Archiver un document
+      </button>
+    </div>
+
+    <!-- Alertes -->
+    <div th:if="${param.saved != null}" class="alert alert-success alert-dismissible fade show py-2">
+      <i class="bi bi-check-circle-fill me-1"></i>Document archivé avec succès.
+      <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.error != null}" class="alert alert-danger alert-dismissible fade show py-2">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>Erreur lors de l'upload.
+      <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card border-0 shadow-sm mb-4 p-3">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <form th:action="@{/archives}" method="get" class="d-flex gap-2 flex-grow-1">
+          <input type="text" name="q" th:value="${q}" class="form-control form-control-sm" placeholder="Rechercher par nom ou tags…">
+          <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
+          <a th:href="@{/archives}" class="btn btn-outline-secondary btn-sm">Tout</a>
+        </form>
+        <div class="d-flex gap-1 flex-wrap">
+          <a th:each="cat : ${ {'ELEVE','PERSONNEL','FINANCES','RH','ADMINISTRATIF','PEDAGOGIQUE'} }"
+             th:href="@{/archives(categorie=${cat})}"
+             th:classappend="${categorieFiltre == cat ? ' active' : ''}"
+             th:text="${cat}"
+             class="btn btn-outline-secondary btn-sm filter-btn"></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste documents -->
+    <div class="row g-3">
+      <div th:each="d : ${docs}" class="col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body text-center pb-2">
+            <div class="doc-icon mb-2">
+              <i th:class="${'bi bi-'+(d.contentType != null and d.contentType.contains('pdf') ? 'file-pdf text-danger' : d.contentType != null and d.contentType.contains('image') ? 'file-image text-primary' : d.contentType != null and d.contentType.contains('word') ? 'file-word text-info' : 'file-earmark text-secondary')}"></i>
+            </div>
+            <div class="fw-semibold small text-truncate" th:text="${d.nom}" th:title="${d.nom}"></div>
+            <div class="text-muted" style="font-size:.7rem" th:text="${d.categorie}"></div>
+            <div th:if="${d.confidentiel}" class="badge text-bg-danger mt-1" style="font-size:.65rem">
+              <i class="bi bi-lock-fill"></i> Confidentiel
+            </div>
+            <p th:if="${d.description != null}" class="text-muted small mt-2 mb-0 text-truncate"
+               th:text="${d.description}" th:title="${d.description}"></p>
+            <div th:if="${d.tags != null}" class="mt-1" style="font-size:.7rem">
+              <span th:each="tag : ${d.tags.split(',')}"
+                    class="badge text-bg-light me-1" th:text="${#strings.trim(tag)}"></span>
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0 pb-3 d-flex justify-content-center gap-2">
+            <a th:href="@{'/archives/'+${d.id}+'/telecharger'}" class="btn btn-outline-primary btn-sm" title="Télécharger">
+              <i class="bi bi-download"></i>
+            </a>
+            <button class="btn btn-outline-danger btn-sm" title="Supprimer"
+                    th:onclick="|if(confirm('Supprimer définitivement ?')){document.getElementById('del-doc-'+${d.id}).submit()}|">
+              <i class="bi bi-trash"></i>
+            </button>
+            <form th:id="|del-doc-${d.id}|" th:action="@{'/archives/'+${d.id}+'/supprimer'}" method="post" class="d-none"></form>
+          </div>
+          <div class="card-footer bg-transparent border-top-0 pt-0 pb-2 text-center" style="font-size:.7rem">
+            <span class="text-muted" th:text="${d.dateArchive != null ? d.dateArchive.toString().substring(0,10) : ''}"></span>
+            <span class="text-muted mx-1">·</span>
+            <span class="text-muted" th:text="${d.taille != null ? #numbers.formatDecimal(d.taille/1024.0,1,'COMMA',1,'POINT')+' Ko' : ''}"></span>
+          </div>
+        </div>
+      </div>
+      <div th:if="${#lists.isEmpty(docs)}" class="col-12">
+        <div class="text-center text-muted py-5 fst-italic">
+          <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+          Aucun document archivé
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Archiver -->
+<div class="modal fade" id="modalArchiver" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/archives}" method="post" enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Archiver un document</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nom du document *</label>
+          <input type="text" name="nom" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Catégorie *</label>
+          <select name="categorie" class="form-select" required>
+            <option value="ELEVE">Élève</option>
+            <option value="PERSONNEL">Personnel</option>
+            <option value="FINANCES">Finances</option>
+            <option value="RH">RH</option>
+            <option value="ADMINISTRATIF">Administratif</option>
+            <option value="PEDAGOGIQUE">Pédagogique</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description</label>
+          <textarea name="description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Tags (séparés par virgule)</label>
+          <input type="text" name="tags" class="form-control" placeholder="bulletin, 2025, terminale…">
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" name="confidentiel" id="confidentiel" class="form-check-input" value="true">
+          <label class="form-check-label" for="confidentiel">Document confidentiel</label>
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Fichier *</label>
+          <input type="file" name="fichier" class="form-control" required>
+          <small class="text-muted">Max 10 Mo. PDF, images, Word, Excel…</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-upload me-1"></i>Archiver</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

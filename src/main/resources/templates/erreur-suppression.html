@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Suppression impossible</title>
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/bootstrap-icons.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex align-items-center justify-content-center" style="min-height: 60vh;">
+      <div class="text-center" style="max-width: 520px;">
+        <div class="mb-4">
+          <i class="bi bi-shield-exclamation text-danger" style="font-size: 4rem;"></i>
+        </div>
+        <h3 class="fw-bold mb-2">Suppression impossible</h3>
+        <p class="text-muted mb-4" th:text="${detail}">
+          Cet élément est lié à d'autres données et ne peut pas être supprimé directement.
+        </p>
+        <a th:href="${retourUrl}" class="btn btn-primary">
+          <i class="bi bi-arrow-left me-2"></i>Retourner à la page précédente
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

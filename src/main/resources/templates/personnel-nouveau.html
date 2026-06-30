@@ -1,0 +1,138 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajouter un membre – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .form-wrap{max-width:780px}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <!-- Fil d'Ariane -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/personnel" class="text-decoration-none">Personnel &amp; RH</a></li>
+        <li class="breadcrumb-item active">Ajouter un membre</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <div style="width:42px;height:42px;border-radius:12px;background:#e8f0fe;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-person-plus-fill text-primary fs-5"></i>
+      </div>
+      <div>
+        <h4 class="fw-bold mb-0">Ajouter un membre du personnel</h4>
+        <p class="text-muted small mb-0">Renseignez les informations du nouvel employé</p>
+      </div>
+    </div>
+
+    <div class="form-wrap">
+      <form th:action="@{/personnel}" method="post">
+
+        <!-- Identité -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white py-3 fw-bold">
+            <i class="bi bi-person-fill text-primary me-2"></i>Identité
+          </div>
+          <div class="card-body row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nom <span class="text-danger">*</span></label>
+              <input type="text" name="nom" class="form-control text-uppercase" required
+                     placeholder="NOM DE FAMILLE" autofocus>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Prénom <span class="text-danger">*</span></label>
+              <input type="text" name="prenom" class="form-control" required placeholder="Prénom">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fonction <span class="text-danger">*</span></label>
+              <select name="fonction" class="form-select" required>
+                <option value="">— Choisir une fonction —</option>
+                <option value="ENSEIGNANT">Enseignant(e)</option>
+                <option value="DIRECTEUR">Directeur / Directrice</option>
+                <option value="SECRETAIRE">Secrétaire</option>
+                <option value="SURVEILLANT">Surveillant(e)</option>
+                <option value="COMPTABLE">Comptable</option>
+                <option value="AGENT_ENTRETIEN">Agent d'entretien</option>
+                <option value="AUTRE">Autre</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Matière enseignée</label>
+              <input type="text" name="matiereEnseignee" class="form-control"
+                     placeholder="Ex : Mathématiques (si enseignant)">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date d'embauche</label>
+              <input type="date" name="dateEmbauche" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Statut</label>
+              <select name="statut" class="form-select">
+                <option value="ACTIF" selected>Actif</option>
+                <option value="ARCHIVE">Archivé</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white py-3 fw-bold">
+            <i class="bi bi-telephone-fill text-info me-2"></i>Contact
+          </div>
+          <div class="card-body row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control" placeholder="prenom.nom@email.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Téléphone</label>
+              <input type="tel" name="telephone" class="form-control" placeholder="07 00 00 00 00">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Adresse</label>
+              <input type="text" name="adresse" class="form-control"
+                     placeholder="Quartier, ville…">
+            </div>
+          </div>
+        </div>
+
+        <!-- Remarques -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white py-3 fw-bold">
+            <i class="bi bi-chat-text text-secondary me-2"></i>Remarques
+          </div>
+          <div class="card-body">
+            <textarea name="remarques" class="form-control" rows="3"
+                      placeholder="Notes libres, compétences particulières, informations utiles…"></textarea>
+          </div>
+        </div>
+
+        <!-- Boutons -->
+        <div class="d-flex gap-2 pb-5">
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-person-check-fill me-2"></i>Enregistrer le membre
+          </button>
+          <a href="/personnel" class="btn btn-outline-secondary px-4">
+            <i class="bi bi-x-lg me-1"></i>Annuler
+          </a>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<th:block th:fragment="sidebar">
+<style>
+  /* ── Base sidebar ── */
+  .mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;z-index:1041;background:#0b1f3a;height:52px;align-items:center;padding:0 1rem;gap:.75rem;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  .sidebar{width:250px;min-height:100vh;background:#0b1f3a;flex-shrink:0;display:flex;flex-direction:column;transition:left .3s ease;z-index:1040;overflow:hidden}
+  .sidebar .brand{padding:1rem 1rem .8rem;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0}
+
+  /* ── Recherche ── */
+  .sidebar-search{padding:.6rem .8rem;border-bottom:1px solid rgba(255,255,255,.08)}
+  .sidebar-search input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#c8daf4;border-radius:8px;padding:.35rem .7rem .35rem 2rem;width:100%;font-size:.82rem;outline:none;transition:background .2s}
+  .sidebar-search input::placeholder{color:rgba(200,218,244,.45)}
+  .sidebar-search input:focus{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25)}
+  .sidebar-search .search-icon{position:absolute;left:1.35rem;top:50%;transform:translateY(-50%);color:rgba(200,218,244,.5);font-size:.8rem;pointer-events:none}
+
+  /* ── Liens directs ── */
+  .sidebar-link{display:flex;align-items:center;gap:.65rem;padding:.52rem 1.1rem;color:#c8daf4;text-decoration:none;font-size:.855rem;transition:background .15s,color .15s;border-left:3px solid transparent}
+  .sidebar-link:hover{color:#fff;background:rgba(255,255,255,.07);border-left-color:rgba(77,163,255,.4)}
+  .sidebar-link.active{color:#fff;background:#1e4a8a;border-left-color:#4da3ff}
+  .sidebar-link i{font-size:.9rem;width:18px;text-align:center;color:#7ab3f0;flex-shrink:0}
+  .sidebar-link:hover i,.sidebar-link.active i{color:#fff}
+
+  /* ── Accordion groupes ── */
+  .acc-header{display:flex;align-items:center;gap:.65rem;padding:.45rem 1.1rem;color:#8aafdc;text-decoration:none;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;background:none;border:none;width:100%;transition:color .15s}
+  .acc-header:hover{color:#c8daf4}
+  .acc-header i.acc-arrow{margin-left:auto;font-size:.7rem;transition:transform .2s;color:#5b8ac9}
+  .acc-header.open .acc-arrow{transform:rotate(90deg)}
+  .acc-body{overflow:hidden;transition:max-height .25s ease}
+  .acc-body.closed{max-height:0!important}
+  .acc-body .sidebar-link{padding-left:2.4rem;font-size:.83rem}
+
+  /* ── Bas sidebar ── */
+  .sidebar-bottom{margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding:.75rem}
+  .sidebar-bottom .sidebar-link{border-radius:8px;border-left:none;padding:.5rem .85rem}
+
+  /* ── Overlay mobile ── */
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1039}
+  .sidebar-overlay.show{display:block}
+
+  /* ── Responsive ── */
+  @media(max-width:767.98px){
+    .mobile-topbar{display:flex!important}
+    body{padding-top:52px}
+    .sidebar{position:fixed;top:52px;left:-260px;min-height:calc(100vh - 52px);width:250px}
+    .sidebar.open{left:0;box-shadow:4px 0 16px rgba(0,0,0,.4)}
+    .page-wrap{display:block}
+  }
+
+  /* ── Masquage lors recherche ── */
+  .sidebar-link.search-hidden{display:none!important}
+  .acc-header.search-hidden{display:none!important}
+</style>
+
+<!-- Mobile topbar -->
+<div class="mobile-topbar">
+  <button class="btn btn-sm text-white border-0 p-1" onclick="toggleSidebar()" style="background:transparent">
+    <i class="bi bi-list fs-4"></i>
+  </button>
+  <i class="bi bi-fire text-warning"></i>
+  <span class="text-white fw-bold">HolyFlame</span>
+  <span class="ms-auto text-white-50 small" sec:authentication="name">utilisateur</span>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="mainSidebar">
+  <!-- Marque -->
+  <div class="brand d-flex align-items-center gap-2 text-white">
+    <i class="bi bi-fire fs-4 text-warning"></i>
+    <div>
+      <div class="fw-bold lh-1">HolyFlame</div>
+      <div class="text-white-50" style="font-size:.7rem">Administration</div>
+    </div>
+  </div>
+
+  <!-- Recherche globale (Ctrl+K) -->
+  <div class="sidebar-search position-relative">
+    <form action="/recherche" method="get" id="globalSearchForm">
+      <i class="bi bi-search search-icon" style="pointer-events:auto;cursor:pointer" onclick="document.getElementById('globalSearchInput').focus()"></i>
+      <input type="text" name="q" id="globalSearchInput" placeholder="Rechercher… (Ctrl+K)"
+             autocomplete="off" style="padding-right:2.2rem"
+             onfocus="this.form.action='/recherche'"
+             oninput="if(this.value.length===0)sidebarFilter(''); else sidebarFilter(this.value)">
+      <span style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);font-size:.65rem;color:rgba(200,218,244,.4);pointer-events:none">↵</span>
+    </form>
+  </div>
+
+  <div class="flex-grow-1 py-1 overflow-y-auto" id="sidebarNav">
+
+    <!-- Super Admin -->
+    <a th:href="@{/super-admin}" class="sidebar-link" sec:authorize="hasRole('SUPER_ADMIN')"
+       style="background:rgba(255,193,7,.12);border-left-color:#ffc107"
+       data-label="super admin établissements gestion globale">
+      <i class="bi bi-shield-fill-check text-warning"></i><span class="text-warning fw-semibold">Super Administration</span>
+    </a>
+
+    <!-- Dashboard -->
+    <a th:href="@{/dashboard}" class="sidebar-link" data-label="tableau de bord accueil"
+       sec:authorize="hasRole('ADMIN')">
+      <i class="bi bi-grid-fill"></i><span>Tableau de bord</span>
+    </a>
+
+    <!-- Suivi direction (ADMIN ou délégué) -->
+    <a th:href="@{/direction/suivi}" class="sidebar-link" data-label="suivi saisies direction"
+       sec:authorize="hasRole('ADMIN')">
+      <i class="bi bi-clipboard2-data"></i><span>Suivi des saisies</span>
+    </a>
+
+    <!-- ── ÉCOLE ── -->
+    <button class="acc-header open" data-acc="acc-ecole" onclick="toggleAcc(this)" sec:authorize="hasRole('ADMIN')">
+      <i class="bi bi-building-fill" style="width:18px;text-align:center"></i>
+      <span>École</span><i class="bi bi-chevron-right acc-arrow"></i>
+    </button>
+    <div class="acc-body" id="acc-ecole">
+      <a th:href="@{/gestion-classes}" class="sidebar-link" data-label="gestion des classes niveaux">
+        <i class="bi bi-building"></i><span>Classes</span>
+      </a>
+      <a th:href="@{/matieres}" class="sidebar-link" data-label="matières cours enseignement">
+        <i class="bi bi-book-fill"></i><span>Matières</span>
+      </a>
+      <a th:href="@{/gestion-salles}" class="sidebar-link" data-label="salles locaux">
+        <i class="bi bi-door-closed-fill"></i><span>Salles</span>
+      </a>
+    </div>
+
+    <!-- ── PERSONNES ── -->
+    <button class="acc-header open" data-acc="acc-personnes" onclick="toggleAcc(this)"
+            sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+      <i class="bi bi-people-fill" style="width:18px;text-align:center"></i>
+      <span>Personnes</span><i class="bi bi-chevron-right acc-arrow"></i>
+    </button>
+    <div class="acc-body" id="acc-personnes">
+      <a th:href="@{/personnel}" class="sidebar-link" sec:authorize="hasRole('ADMIN')"
+         data-label="personnel ressources humaines rh contrats congés salaires">
+        <i class="bi bi-person-badge-fill"></i><span>Personnel &amp; RH</span>
+      </a>
+      <a th:href="@{/secretariat}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')"
+         data-label="secrétariat élèves inscriptions">
+        <i class="bi bi-person-lines-fill"></i><span>Secrétariat</span>
+      </a>
+    </div>
+
+    <!-- ── PÉDAGOGIE ── -->
+    <button class="acc-header open" data-acc="acc-peda" onclick="toggleAcc(this)"
+            sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT','SECRETAIRE')">
+      <i class="bi bi-mortarboard-fill" style="width:18px;text-align:center"></i>
+      <span>Pédagogie</span><i class="bi bi-chevron-right acc-arrow"></i>
+    </button>
+    <div class="acc-body" id="acc-peda">
+      <a th:href="@{/surveillance}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')"
+         data-label="surveillance absences présences">
+        <i class="bi bi-eye-fill"></i><span>Surveillance</span>
+      </a>
+      <a th:href="@{/notes}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT','SECRETAIRE')"
+         data-label="notes évaluations saisie">
+        <i class="bi bi-journal-text"></i><span>Notes</span>
+      </a>
+      <a th:href="@{/emploi-du-temps}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT','SECRETAIRE')"
+         data-label="emploi du temps grille hebdomadaire horaires planning">
+        <i class="bi bi-calendar3-week"></i><span>Emploi du temps</span>
+      </a>
+      <a th:href="@{/bulletins}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT','SECRETAIRE')"
+         data-label="bulletins relevés résultats">
+        <i class="bi bi-file-earmark-text-fill"></i><span>Bulletins</span>
+      </a>
+      <a th:href="@{/tableau-enseignant}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')"
+         data-label="espace enseignant cours planning">
+        <i class="bi bi-person-workspace"></i><span>Espace enseignant</span>
+      </a>
+    </div>
+
+    <!-- ── FINANCES ── -->
+    <button class="acc-header open" data-acc="acc-finances" onclick="toggleAcc(this)"
+            sec:authorize="hasAnyRole('ADMIN','TRESORIER')">
+      <i class="bi bi-cash-coin" style="width:18px;text-align:center"></i>
+      <span>Finances</span><i class="bi bi-chevron-right acc-arrow"></i>
+    </button>
+    <div class="acc-body" id="acc-finances">
+      <a th:href="@{/finances}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','TRESORIER')"
+         data-label="finances trésorerie paiements budget prévisionnel">
+        <i class="bi bi-wallet2"></i><span>Paiements &amp; Budget</span>
+      </a>
+      <a th:href="@{/export/paiements/excel}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','TRESORIER')"
+         data-label="export excel paiements">
+        <i class="bi bi-file-earmark-excel-fill text-success"></i><span>Export paiements</span>
+      </a>
+      <a th:href="@{/export/eleves/excel}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')"
+         data-label="export excel élèves liste">
+        <i class="bi bi-file-earmark-person-fill text-primary"></i><span>Export élèves</span>
+      </a>
+      <a th:href="@{/export/notes/excel}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')"
+         data-label="export excel notes relevé">
+        <i class="bi bi-file-earmark-bar-graph-fill text-info"></i><span>Export notes</span>
+      </a>
+    </div>
+
+    <!-- ── GESTION ── -->
+    <button class="acc-header open" data-acc="acc-gestion" onclick="toggleAcc(this)"
+            sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+      <i class="bi bi-gear-fill" style="width:18px;text-align:center"></i>
+      <span>Gestion</span><i class="bi bi-chevron-right acc-arrow"></i>
+    </button>
+    <div class="acc-body" id="acc-gestion">
+      <a th:href="@{/inventaire}" class="sidebar-link" sec:authorize="hasRole('ADMIN')"
+         data-label="inventaire patrimoine matériel équipements">
+        <i class="bi bi-box-seam-fill"></i><span>Inventaire</span>
+      </a>
+      <a th:href="@{/archives}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')"
+         data-label="archives documents numériques">
+        <i class="bi bi-archive-fill"></i><span>Archives</span>
+      </a>
+      <a th:href="@{/communication}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')"
+         data-label="communication messages parents email sms">
+        <i class="bi bi-chat-dots-fill"></i><span>Communication</span>
+      </a>
+      <a th:href="@{/publications}" class="sidebar-link" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')"
+         data-label="publications annonces programme événements portail élèves">
+        <i class="bi bi-megaphone-fill"></i><span>Publications</span>
+      </a>
+    </div>
+
+    <!-- Journal de bord -->
+    <a th:href="@{/journal}" class="sidebar-link" sec:authorize="hasRole('ADMIN')"
+       data-label="journal bord historique actions logs activité">
+      <i class="bi bi-journal-text"></i><span>Journal de bord</span>
+    </a>
+
+    <!-- Recherche globale -->
+    <a th:href="@{/recherche}" class="sidebar-link"
+       data-label="recherche globale élèves personnel matières classes">
+      <i class="bi bi-search"></i><span>Recherche avancée</span>
+    </a>
+
+    <!-- ── PORTAIL ── -->
+    <a th:href="@{/portail}" class="sidebar-link"
+       sec:authorize="hasAnyRole('ADMIN','ELEVE','SECRETAIRE')"
+       data-label="portail élève parent notes absences paiements">
+      <i class="bi bi-house-door-fill"></i><span>Portail élève / parent</span>
+    </a>
+
+  </div><!-- /sidebarNav -->
+
+  <!-- Actions rapides FAB -->
+  <div class="px-2 mb-2" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE','TRESORIER','ENSEIGNANT')">
+    <div class="dropdown dropup">
+      <button class="btn btn-warning btn-sm w-100 fw-semibold dropdown-toggle" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-lightning-fill me-1"></i>Action rapide
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark w-100 mb-1">
+        <li sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+          <a class="dropdown-item" th:href="@{/secretariat/nouveau}"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Nouvel élève</a>
+        </li>
+        <li sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')">
+          <a class="dropdown-item" th:href="@{/surveillance}"><i class="bi bi-eye-fill me-2 text-warning"></i>Saisir une absence</a>
+        </li>
+        <li sec:authorize="hasAnyRole('ADMIN','TRESORIER')">
+          <a class="dropdown-item" th:href="@{/finances#nouveau-paiement}"><i class="bi bi-cash-coin me-2 text-success"></i>Enregistrer un paiement</a>
+        </li>
+        <li sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')">
+          <a class="dropdown-item" th:href="@{/notes}"><i class="bi bi-journal-text me-2 text-info"></i>Saisir des notes</a>
+        </li>
+        <li sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+          <a class="dropdown-item" th:href="@{/communication}"><i class="bi bi-chat-dots-fill me-2 text-purple"></i>Envoyer un message</a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" th:href="@{/bulletins/impression}"><i class="bi bi-printer-fill me-2 text-secondary"></i>Imprimer des bulletins</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Bas : Paramètres + Déconnexion -->
+  <div class="sidebar-bottom">
+    <a th:href="@{/parametres}" class="sidebar-link mb-1" sec:authorize="hasRole('ADMIN')"
+       data-label="paramètres configuration année scolaire frais">
+      <i class="bi bi-gear-fill"></i><span>Paramètres</span>
+    </a>
+    <div class="text-white-50 small mb-2 text-truncate px-1">
+      <i class="bi bi-person-circle me-1"></i>
+      <span sec:authentication="name">utilisateur</span>
+    </div>
+    <form th:action="@{/logout}" method="post">
+      <button type="submit" class="btn btn-outline-light btn-sm w-100">
+        <i class="bi bi-box-arrow-left me-1"></i>Déconnexion
+      </button>
+    </form>
+  </div>
+</nav>
+
+<script>
+function toggleSidebar() {
+  document.getElementById('mainSidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+
+function toggleAcc(btn) {
+  var id = btn.getAttribute('data-acc');
+  var body = document.getElementById(id);
+  var open = btn.classList.toggle('open');
+  body.classList.toggle('closed', !open);
+  body.style.maxHeight = open ? body.scrollHeight + 'px' : '0';
+  localStorage.setItem('acc-' + id, open ? '1' : '0');
+}
+
+// Init accordions from localStorage + set max-height
+document.querySelectorAll('.acc-body').forEach(function(body) {
+  var id = body.id;
+  var btn = document.querySelector('[data-acc="' + id + '"]');
+  var saved = localStorage.getItem('acc-' + id);
+  // Default open (saved === null → open)
+  var isOpen = saved === null ? true : saved === '1';
+  if (!isOpen) {
+    if (btn) btn.classList.remove('open');
+    body.classList.add('closed');
+    body.style.maxHeight = '0';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+});
+
+// Marquer le lien actif
+(function() {
+  var path = window.location.pathname;
+  document.querySelectorAll('.sidebar-link').forEach(function(link) {
+    var href = link.getAttribute('href') || '';
+    if (href && href !== '/' && path.startsWith(href)) {
+      link.classList.add('active');
+      // Ouvrir le groupe parent si fermé
+      var body = link.closest('.acc-body');
+      if (body) {
+        var btn = document.querySelector('[data-acc="' + body.id + '"]');
+        if (btn && !btn.classList.contains('open')) {
+          btn.classList.add('open');
+          body.classList.remove('closed');
+          body.style.maxHeight = body.scrollHeight + 'px';
+        }
+      }
+    }
+  });
+})();
+
+// Raccourci Ctrl+K → focus barre de recherche
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    var inp = document.getElementById('globalSearchInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+});
+
+// Recherche en temps réel
+function sidebarFilter(q) {
+  q = q.trim().toLowerCase();
+  var nav = document.getElementById('sidebarNav');
+
+  if (!q) {
+    // Réafficher tout
+    nav.querySelectorAll('.sidebar-link, .acc-header').forEach(function(el) {
+      el.classList.remove('search-hidden');
+    });
+    // Restaurer état accordion
+    document.querySelectorAll('.acc-body').forEach(function(body) {
+      var id = body.id;
+      var btn = document.querySelector('[data-acc="' + id + '"]');
+      var saved = localStorage.getItem('acc-' + id);
+      var isOpen = saved === null ? true : saved === '1';
+      btn.classList.toggle('open', isOpen);
+      body.classList.toggle('closed', !isOpen);
+      body.style.maxHeight = isOpen ? body.scrollHeight + 'px' : '0';
+    });
+    return;
+  }
+
+  // Forcer tous les accordéons ouverts pendant la recherche
+  document.querySelectorAll('.acc-body').forEach(function(body) {
+    body.classList.remove('closed');
+    body.style.maxHeight = body.scrollHeight + 100 + 'px';
+    var btn = document.querySelector('[data-acc="' + body.id + '"]');
+    if (btn) btn.classList.add('open');
+  });
+
+  // Filtrer les liens
+  nav.querySelectorAll('.sidebar-link').forEach(function(link) {
+    var label = (link.getAttribute('data-label') || '') + ' ' + (link.textContent || '');
+    link.classList.toggle('search-hidden', !label.toLowerCase().includes(q));
+  });
+
+  // Masquer les en-têtes d'accordion dont TOUS les enfants sont cachés
+  nav.querySelectorAll('.acc-header').forEach(function(btn) {
+    var id = btn.getAttribute('data-acc');
+    var body = document.getElementById(id);
+    if (!body) return;
+    var visible = body.querySelectorAll('.sidebar-link:not(.search-hidden)').length;
+    btn.classList.toggle('search-hidden', visible === 0);
+  });
+}
+</script>
+</th:block>
+</body>
+</html>

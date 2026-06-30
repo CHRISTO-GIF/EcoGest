@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Communication – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .nav-tabs .nav-link.active{background:#0b1f3a;color:#fff;border-color:#0b1f3a}
+    .nav-tabs .nav-link{color:#0b1f3a}
+    .msg-card{border-left:4px solid #4da3ff}
+    .msg-card.echec{border-left-color:#ef4444}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Communication externe</h4>
+        <p class="text-muted small mb-0">Messagerie vers parents et personnel</p>
+      </div>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEnvoyer">
+        <i class="bi bi-send-fill me-1"></i>Nouveau message
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-primary" th:text="${#lists.size(historique)}">0</div>
+          <div class="small text-muted">Total messages</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-success" th:text="${totalEnvoye}">0</div>
+          <div class="small text-muted">Envoyés</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-info" th:text="${#lists.size(modeles)}">0</div>
+          <div class="small text-muted">Modèles</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerte succès -->
+    <div th:if="${param.sent != null}" class="alert alert-success alert-dismissible fade show py-2" role="alert">
+      <i class="bi bi-check-circle-fill me-1"></i>
+      Message envoyé à <strong th:text="${param.sent[0]}"></strong> destinataire(s).
+      <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><a class="nav-link active" href="#historique" data-bs-toggle="tab"><i class="bi bi-clock-history me-1"></i>Historique</a></li>
+      <li class="nav-item"><a class="nav-link" href="#modeles" data-bs-toggle="tab"><i class="bi bi-file-earmark-text me-1"></i>Modèles</a></li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- Historique -->
+      <div class="tab-pane fade show active" id="historique">
+        <div th:each="m : ${historique}"
+             th:class="${'card border-0 shadow-sm mb-3 msg-card '+(m.statut=='ECHEC'?'echec':'')}">
+          <div class="card-body py-3 px-4">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge text-bg-primary me-1" th:text="${m.type}"></span>
+                <span th:class="${'badge '+(m.statut=='ENVOYE'?'text-bg-success':m.statut=='BROUILLON'?'text-bg-secondary':'text-bg-danger')}"
+                      th:text="${m.statut}"></span>
+                <strong class="ms-2" th:text="${m.sujet != null ? m.sujet : '(sans sujet)'}"></strong>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <small class="text-muted" th:text="${m.dateEnvoi != null ? m.dateEnvoi.toString().substring(0,16).replace('T',' ') : ''}"></small>
+                <button class="btn btn-link btn-sm p-0 text-danger"
+                        th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-m-'+${m.id}).submit()}|">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <form th:id="|del-m-${m.id}|" th:action="@{'/communication/'+${m.id}+'/supprimer'}" method="post" class="d-none"></form>
+              </div>
+            </div>
+            <div class="text-muted small mt-1">
+              <i class="bi bi-people me-1"></i><span th:text="${m.cibleType}"></span> —
+              <span th:text="${m.nbDestinataires}"></span> destinataire(s) —
+              <span>par <em th:text="${m.expediteur}"></em></span>
+            </div>
+            <p class="mb-0 mt-2 small" th:text="${#strings.abbreviate(m.contenu,150)}"></p>
+          </div>
+        </div>
+        <p th:if="${#lists.isEmpty(historique)}" class="text-center text-muted fst-italic py-4">Aucun message envoyé</p>
+      </div>
+
+      <!-- Modèles -->
+      <div class="tab-pane fade" id="modeles">
+        <div class="d-flex justify-content-end mb-2">
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalModele">
+            <i class="bi bi-plus-lg me-1"></i>Nouveau modèle
+          </button>
+        </div>
+        <div class="row g-3">
+          <div th:each="m : ${modeles}" class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <span class="badge text-bg-secondary" th:text="${m.type}"></span>
+                  <button class="btn btn-link btn-sm p-0 text-danger"
+                          th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-mod-'+${m.id}).submit()}|">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  <form th:id="|del-mod-${m.id}|" th:action="@{'/communication/modeles/'+${m.id}+'/supprimer'}" method="post" class="d-none"></form>
+                </div>
+                <h6 class="mt-2 mb-1" th:text="${m.nom}"></h6>
+                <div class="text-muted small mb-2" th:text="${m.sujet}"></div>
+                <p class="small mb-0 text-muted" th:text="${#strings.abbreviate(m.contenu,200)}"></p>
+              </div>
+              <div class="card-footer bg-transparent border-0 pt-0">
+                <button class="btn btn-outline-primary btn-sm"
+                        th:attr="data-contenu=${m.contenu},data-sujet=${m.sujet},data-type=${m.type}"
+                        onclick="utiliserModele(this)">
+                  <i class="bi bi-send me-1"></i>Utiliser ce modèle
+                </button>
+              </div>
+            </div>
+          </div>
+          <p th:if="${#lists.isEmpty(modeles)}" class="col-12 text-center text-muted fst-italic py-4">Aucun modèle</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Envoyer -->
+<div class="modal fade" id="modalEnvoyer" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form th:action="@{/communication/envoyer}" method="post" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouveau message</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Canal</label>
+            <select name="type" class="form-select">
+              <option value="EMAIL">Email</option>
+              <option value="SMS">SMS</option>
+              <option value="INTERNE">Message interne</option>
+            </select>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label fw-semibold">Destinataires</label>
+            <select name="cibleType" class="form-select" id="cibleTypeSelect" onchange="toggleClasse()">
+              <option value="TOUS_PARENTS">Tous les parents</option>
+              <option value="CLASSE">Une classe</option>
+              <option value="PERSONNEL">Tout le personnel</option>
+            </select>
+          </div>
+          <div class="col-md-4" id="classeDiv" style="display:none">
+            <label class="form-label fw-semibold">Classe</label>
+            <select name="classeId" class="form-select">
+              <option value="">— Choisir —</option>
+              <option th:each="cl : ${classes}" th:value="${cl.id}" th:text="${cl.nom}"></option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Sujet</label>
+            <input type="text" name="sujet" id="msgSujet" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Message *</label>
+            <textarea name="contenu" id="msgContenu" class="form-control" rows="6" required></textarea>
+            <small class="text-muted">Variables disponibles: {NOM_ELEVE}, {CLASSE}, {MONTANT}, {DATE}</small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill me-1"></i>Envoyer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Modèle -->
+<div class="modal fade" id="modalModele" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/communication/modeles}" method="post" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouveau modèle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nom du modèle *</label>
+          <input type="text" name="nom" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Type</label>
+          <select name="type" class="form-select">
+            <option value="EMAIL">Email</option><option value="SMS">SMS</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Sujet (email)</label>
+          <input type="text" name="sujet" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Contenu *</label>
+          <textarea name="contenu" class="form-control" rows="5" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleClasse(){
+  document.getElementById('classeDiv').style.display =
+    document.getElementById('cibleTypeSelect').value === 'CLASSE' ? 'block' : 'none';
+}
+function utiliserModele(btn){
+  document.getElementById('msgSujet').value = btn.getAttribute('data-sujet') || '';
+  document.getElementById('msgContenu').value = btn.getAttribute('data-contenu') || '';
+  new bootstrap.Modal(document.getElementById('modalEnvoyer')).show();
+}
+var hash = window.location.hash;
+if(hash){ var t=document.querySelector('.nav-link[href="'+hash+'"]'); if(t) new bootstrap.Tab(t).show(); }
+</script>
+</body>
+</html>

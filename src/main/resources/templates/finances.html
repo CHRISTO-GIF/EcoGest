@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finances – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .nav-tabs .nav-link.active{background:#0b1f3a;color:#fff;border-color:#0b1f3a}
+    .nav-tabs .nav-link{color:#0b1f3a;font-weight:500}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-cash-coin text-success me-2"></i>Finances</h4>
+        <p class="text-muted small mb-0">Paiements, budget prévisionnel et rapport financier</p>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fw-bold fs-4 text-success" th:text="${#numbers.formatDecimal(totalEncaisse,1,'COMMA',0,'POINT')}">0</div>
+          <div class="small text-muted">Total encaissé (FCFA)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fw-bold fs-4 text-primary" th:text="${#lists.size(paiements)}">0</div>
+          <div class="small text-muted">Transactions</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fw-bold fs-4 text-info" th:text="${#numbers.formatDecimal(totalRevenuPrevu,1,'COMMA',0,'POINT')}">0</div>
+          <div class="small text-muted">Revenus prévus (FCFA)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fw-bold fs-4" th:classappend="${soldePrevu >= 0 ? ' text-success' : ' text-danger'}"
+               th:text="${#numbers.formatDecimal(soldePrevu,1,'COMMA',0,'POINT')}">0</div>
+          <div class="small text-muted">Solde prévisionnel</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglets -->
+    <ul class="nav nav-tabs mb-4" id="financesTabs">
+      <li class="nav-item">
+        <a class="nav-link" id="tab-link-paiements" href="#paiements" data-bs-toggle="tab">
+          <i class="bi bi-receipt me-1"></i>Paiements
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-link-budget" href="#budget" data-bs-toggle="tab">
+          <i class="bi bi-bar-chart-fill me-1"></i>Budget prévisionnel
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tab-link-rapport" href="#rapport" data-bs-toggle="tab">
+          <i class="bi bi-graph-up me-1"></i>Rapport
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ===== PAIEMENTS ===== -->
+      <div class="tab-pane fade" id="paiements">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white py-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+              <span class="fw-semibold"><i class="bi bi-table me-1 text-muted"></i>Historique des paiements</span>
+              <div class="d-flex gap-2 flex-wrap align-items-center">
+                <div class="input-group input-group-sm" style="width:200px">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control border-start-0 ps-0" placeholder="Rechercher…"
+                         oninput="filterTable(this,'tablePaiements')">
+                </div>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalPaiement">
+                  <i class="bi bi-plus-circle me-1"></i>Enregistrer
+                </button>
+                <a th:href="@{/export/paiements/excel}" class="btn btn-outline-success btn-sm">
+                  <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </a>
+              </div>
+            </div>
+          </div>
+          <div th:if="${#lists.isEmpty(paiements)}" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>Aucun paiement enregistré
+          </div>
+          <div th:unless="${#lists.isEmpty(paiements)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tablePaiements">
+              <thead class="table-light">
+                <tr><th>N° reçu</th><th>Élève</th><th>Classe</th><th>Montant</th><th>Type</th><th>Mode</th><th>Date</th><th class="text-end">Action</th></tr>
+              </thead>
+              <tbody>
+                <tr th:each="p : ${paiements}">
+                  <td class="small text-muted" th:text="${p.recuNumero}"></td>
+                  <td class="fw-semibold" th:text="${p.eleve?.nom + ' ' + p.eleve?.prenom}"></td>
+                  <td><span class="badge bg-primary-subtle text-primary" th:text="${p.eleve?.classe?.nom}"></span></td>
+                  <td class="fw-bold text-success" th:text="${#numbers.formatDecimal(p.montantVerse,0,'COMMA',0,'POINT') + ' FCFA'}"></td>
+                  <td><span class="badge bg-info-subtle text-info" th:text="${p.typePaiement}"></span></td>
+                  <td class="small" th:text="${p.modePaiement}"></td>
+                  <td class="small text-muted" th:text="${p.datePaiement != null ? #temporals.format(p.datePaiement,'dd/MM/yyyy HH:mm') : '–'}"></td>
+                  <td class="text-end">
+                    <a th:href="@{'/finances/paiements/'+${p.id}+'/recu'}"
+                       class="btn btn-outline-success btn-sm py-0 px-2 me-1"
+                       title="Imprimer le reçu" target="_blank">
+                      <i class="bi bi-receipt"></i>
+                    </a>
+                    <form th:action="@{'/finances/paiements/'+${p.id}+'/supprimer'}" method="post" class="d-inline"
+                          onsubmit="return confirm('Supprimer ce paiement ?')">
+                      <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== BUDGET ===== -->
+      <div class="tab-pane fade" id="budget">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <form th:action="@{/finances}" method="get" class="d-flex gap-2 align-items-center">
+            <input type="hidden" name="tab" value="budget">
+            <label class="form-label mb-0 small fw-semibold">Année :</label>
+            <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="2024-2025" th:selected="${annee=='2024-2025'}">2024-2025</option>
+              <option value="2025-2026" th:selected="${annee=='2025-2026'}">2025-2026</option>
+              <option value="2026-2027" th:selected="${annee=='2026-2027'}">2026-2027</option>
+            </select>
+          </form>
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBudget">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter une ligne
+          </button>
+        </div>
+
+        <!-- REVENUS -->
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-success bg-opacity-10 text-success fw-semibold border-0 py-2">
+            <i class="bi bi-arrow-up-circle-fill me-2"></i>REVENUS —
+            <span th:text="${#numbers.formatDecimal(totalRevenuPrevu,1,'COMMA',0,'POINT')+' FCFA prévus'}"></span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light"><tr>
+                <th>Désignation</th><th>Type</th><th>Mois</th>
+                <th class="text-end">Prévu</th><th class="text-end">Réel</th><th class="text-end">Écart</th><th></th>
+              </tr></thead>
+              <tbody>
+                <tr th:each="l : ${lignes}" th:if="${l.categorie == 'REVENU'}">
+                  <td th:text="${l.designation}"></td>
+                  <td><span class="badge text-bg-light small" th:text="${l.typeLigne}"></span></td>
+                  <td class="small" th:text="${l.mois != null ? l.mois : 'Annuel'}"></td>
+                  <td class="text-end small" th:text="${l.montantPrevu != null ? #numbers.formatDecimal(l.montantPrevu,1,'COMMA',0,'POINT') : '—'}"></td>
+                  <td class="text-end small" th:text="${l.montantReel != null ? #numbers.formatDecimal(l.montantReel,1,'COMMA',0,'POINT') : '—'}"></td>
+                  <td class="text-end small" th:with="e=${l.montantReel != null and l.montantPrevu != null ? l.montantReel - l.montantPrevu : null}">
+                    <span th:if="${e != null}" th:classappend="${e >= 0 ? ' text-success' : ' text-danger'}"
+                          th:text="${(e >= 0 ? '+' : '') + #numbers.formatDecimal(e,1,'COMMA',0,'POINT')}"></span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-link btn-sm p-0 text-primary me-1" title="Saisir réel"
+                            th:attr="data-id=${l.id},data-val=${l.montantReel}"
+                            onclick="ouvrirReel(this)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-link btn-sm p-0 text-danger"
+                            th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-b-'+${l.id}).submit()}|">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <form th:id="|del-b-${l.id}|" th:action="@{'/finances/budget/'+${l.id}+'/supprimer'}" method="post" class="d-none"></form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DÉPENSES -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-danger bg-opacity-10 text-danger fw-semibold border-0 py-2">
+            <i class="bi bi-arrow-down-circle-fill me-2"></i>DÉPENSES —
+            <span th:text="${#numbers.formatDecimal(totalDepensePrevu,1,'COMMA',0,'POINT')+' FCFA prévus'}"></span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light"><tr>
+                <th>Désignation</th><th>Type</th><th>Mois</th>
+                <th class="text-end">Prévu</th><th class="text-end">Réel</th><th class="text-end">Économie</th><th></th>
+              </tr></thead>
+              <tbody>
+                <tr th:each="l : ${lignes}" th:if="${l.categorie == 'DEPENSE'}">
+                  <td th:text="${l.designation}"></td>
+                  <td><span class="badge text-bg-light small" th:text="${l.typeLigne}"></span></td>
+                  <td class="small" th:text="${l.mois != null ? l.mois : 'Annuel'}"></td>
+                  <td class="text-end small" th:text="${l.montantPrevu != null ? #numbers.formatDecimal(l.montantPrevu,1,'COMMA',0,'POINT') : '—'}"></td>
+                  <td class="text-end small" th:text="${l.montantReel != null ? #numbers.formatDecimal(l.montantReel,1,'COMMA',0,'POINT') : '—'}"></td>
+                  <td class="text-end small" th:with="e=${l.montantReel != null and l.montantPrevu != null ? l.montantPrevu - l.montantReel : null}">
+                    <span th:if="${e != null}" th:classappend="${e >= 0 ? ' text-success' : ' text-danger'}"
+                          th:text="${(e >= 0 ? '+' : '') + #numbers.formatDecimal(e,1,'COMMA',0,'POINT')}"></span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-link btn-sm p-0 text-primary me-1" title="Saisir réel"
+                            th:attr="data-id=${l.id},data-val=${l.montantReel}"
+                            onclick="ouvrirReel(this)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-link btn-sm p-0 text-danger"
+                            th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-b-'+${l.id}).submit()}|">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <form th:id="|del-b-${l.id}|" th:action="@{'/finances/budget/'+${l.id}+'/supprimer'}" method="post" class="d-none"></form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RAPPORT ===== -->
+      <div class="tab-pane fade" id="rapport">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 h-100">
+              <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow text-success me-1"></i>Synthèse financière</h6>
+              <table class="table table-sm">
+                <tbody>
+                  <tr><th>Revenus prévus</th><td class="text-end text-success fw-bold"
+                      th:text="${#numbers.formatDecimal(totalRevenuPrevu,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                  <tr><th>Dépenses prévues</th><td class="text-end text-danger fw-bold"
+                      th:text="${#numbers.formatDecimal(totalDepensePrevu,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                  <tr class="table-light"><th>Solde prévisionnel</th><td class="text-end fw-bold"
+                      th:classappend="${soldePrevu >= 0 ? ' text-success' : ' text-danger'}"
+                      th:text="${#numbers.formatDecimal(soldePrevu,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                  <tr><th>Revenus réels saisis</th><td class="text-end fw-bold"
+                      th:text="${#numbers.formatDecimal(totalRevenuReel,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                  <tr><th>Encaissements réels</th><td class="text-end text-primary fw-bold"
+                      th:text="${#numbers.formatDecimal(totalEncaisse,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                  <tr class="table-light"><th>Solde réel</th><td class="text-end fw-bold"
+                      th:classappend="${soldeReel >= 0 ? ' text-success' : ' text-danger'}"
+                      th:text="${#numbers.formatDecimal(soldeReel,1,'COMMA',0,'POINT')+' FCFA'}"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 h-100">
+              <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-1"></i>Taux d'encaissement</h6>
+              <div class="text-center mb-3">
+                <div class="display-4 fw-bold" th:classappend="${tauxEncaissement >= 80 ? ' text-success' : tauxEncaissement >= 50 ? ' text-warning' : ' text-danger'}"
+                     th:text="${#numbers.formatDecimal(tauxEncaissement,1,'COMMA',1,'POINT')+'%'}"></div>
+                <div class="text-muted small">des revenus prévus encaissés</div>
+              </div>
+              <div class="progress mb-2" style="height:14px;border-radius:8px"
+                   th:with="t=${tauxEncaissement > 100 ? 100 : tauxEncaissement}">
+                <div class="progress-bar" th:style="${'width:'+t+'%;background:'+(tauxEncaissement>=80?'#22c55e':tauxEncaissement>=50?'#f59e0b':'#ef4444')}"></div>
+              </div>
+              <div class="d-flex justify-content-between small text-muted">
+                <span>0%</span><span>50%</span><span>100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card border-0 shadow-sm p-3">
+          <h6 class="fw-bold mb-3 small"><i class="bi bi-bar-chart-fill text-primary me-1"></i>Encaissements par type</h6>
+          <canvas id="chartTypes" height="80"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div>
+</div>
+
+<!-- Modal Paiement -->
+<div class="modal fade" id="modalPaiement" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/finances/paiements}" method="post" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-cash-coin me-2 text-success"></i>Enregistrer un paiement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body row g-3">
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Élève *</label>
+          <select name="eleveId" class="form-select" required>
+            <option value="">— Choisir un élève —</option>
+            <option th:each="e : ${eleves}" th:value="${e.id}" th:text="${e.nom+' '+e.prenom+' ('+e.classe?.nom+')'}"></option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Montant (FCFA) *</label>
+          <input type="number" name="montantVerse" class="form-control" step="1" min="0" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-semibold">N° reçu</label>
+          <input type="text" name="recuNumero" class="form-control" placeholder="Auto si vide">
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Type *</label>
+          <select name="typePaiement" class="form-select" required>
+            <option value="">—</option>
+            <option>INSCRIPTION</option><option>SCOLARITE</option>
+            <option>CANTINE</option><option>TRANSPORT</option><option>AUTRE</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label small fw-semibold">Mode *</label>
+          <select name="modePaiement" class="form-select" required>
+            <option value="">—</option>
+            <option>ESPECES</option><option>VIREMENT</option>
+            <option>MOBILE_MONEY</option><option>CHEQUE</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Budget -->
+<div class="modal fade" id="modalBudget" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/finances/budget}" method="post" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle ligne budgétaire</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body row g-3">
+        <input type="hidden" name="anneeScolaire" th:value="${annee}">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Désignation *</label>
+          <input type="text" name="designation" class="form-control" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">Catégorie *</label>
+          <select name="categorie" class="form-select" required>
+            <option value="REVENU">Revenu</option><option value="DEPENSE">Dépense</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">Type</label>
+          <select name="typeLigne" class="form-select">
+            <option value="SCOLARITE">Scolarité</option><option value="INSCRIPTION">Inscription</option>
+            <option value="SUBVENTION">Subvention</option><option value="SALAIRE">Salaire</option>
+            <option value="CHARGES">Charges</option><option value="MATERIEL">Matériel</option>
+            <option value="AUTRE">Autre</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">Montant prévu *</label>
+          <input type="number" step="1" name="montantPrevu" class="form-control" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">Mois (vide = annuel)</label>
+          <select name="mois" class="form-select">
+            <option value="">— Annuel —</option>
+            <option th:each="m : ${#numbers.sequence(1,12)}" th:value="${m}"
+                    th:text="${{'Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'}[m-1]}"></option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Montant réel -->
+<div class="modal fade" id="modalReel" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form id="formReel" method="post" class="modal-content">
+      <div class="modal-header py-2"><h6 class="modal-title">Saisir montant réel</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="number" step="1" name="montantReel" id="montantReelInput" class="form-control" required>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script th:inline="javascript">
+  // Données pour le graphique types de paiements
+  var paiementsData = /*[[${paiements}]]*/ [];
+
+  // Activer l'onglet selon param URL ou ancre
+  var urlParams = new URLSearchParams(window.location.search);
+  var tab = urlParams.get('tab') || window.location.hash.replace('#','') || 'paiements';
+  var tabEl = document.getElementById('tab-link-' + tab);
+  if (tabEl) new bootstrap.Tab(tabEl).show();
+
+  function filterTable(input, tableId) {
+    var q = input.value.toLowerCase();
+    document.querySelectorAll('#' + tableId + ' tbody tr').forEach(function(row) {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function ouvrirReel(btn) {
+    var id = btn.getAttribute('data-id');
+    var val = btn.getAttribute('data-val');
+    document.getElementById('formReel').action = '/finances/budget/' + id + '/realiser';
+    document.getElementById('montantReelInput').value = val || '';
+    new bootstrap.Modal(document.getElementById('modalReel')).show();
+  }
+
+  // Graphique types de paiement (rapport)
+  document.getElementById('tab-link-rapport').addEventListener('shown.bs.tab', function() {
+    if (!window._chartTypesInit) {
+      window._chartTypesInit = true;
+      // Compter par type (données statiques depuis le serveur via Thymeleaf)
+      new Chart(document.getElementById('chartTypes'), {
+        type: 'bar',
+        data: {
+          labels: ['INSCRIPTION','SCOLARITE','CANTINE','TRANSPORT','AUTRE'],
+          datasets: [{
+            label: 'Montant (FCFA)',
+            data: [0,0,0,0,0], // sera alimenté par les vrais données si besoin
+            backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#6366f1','#94a3b8'],
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestion des classes – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div th:if="${erreur}" class="alert alert-danger alert-dismissible fade show py-2 mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${erreur}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show py-2 mb-3" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Gestion des classes</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0"><i class="bi bi-building text-warning me-2"></i>Gestion des classes</h4>
+      <button class="btn btn-warning btn-sm text-dark" data-bs-toggle="modal" data-bs-target="#modalClasse">
+        <i class="bi bi-plus-circle me-1"></i>Nouvelle classe
+      </button>
+    </div>
+
+    <div class="row g-3">
+      <div th:if="${#lists.isEmpty(classes)}" class="col-12 text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>Aucune classe créée.
+      </div>
+      <div class="col-md-6 col-lg-4" th:each="c : ${classes}">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div class="rounded-3 p-3 bg-warning bg-opacity-10">
+                <i class="bi bi-building fs-3 text-warning"></i>
+              </div>
+              <div>
+                <div class="fw-bold fs-5" th:text="${c.nom}"></div>
+                <div class="text-muted small" th:text="${c.niveau ?: '–'}"></div>
+              </div>
+            </div>
+            <div class="text-muted small mb-3">
+              <i class="bi bi-calendar me-1"></i>Année : <span th:text="${c.anneeScolaire ?: '–'}"></span>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm flex-grow-1"
+                      data-bs-toggle="modal"
+                      th:attr="data-bs-target='#editClasse' + ${c.id}">
+                <i class="bi bi-pencil me-1"></i>Modifier
+              </button>
+              <form th:action="@{/gestion-classes/{id}/supprimer(id=${c.id})}" method="post" onsubmit="return confirm('Supprimer cette classe ?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nouvelle classe -->
+<div class="modal fade" id="modalClasse" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form th:action="@{/gestion-classes}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-building me-2 text-warning"></i>Nouvelle classe</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nom de la classe *</label>
+              <input type="text" name="nom" class="form-control" placeholder="Ex: 6ème A" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Niveau</label>
+              <select name="niveau" class="form-select">
+                <option value="">— Choisir —</option>
+                <option>CP1</option><option>CP2</option>
+                <option>CE1</option><option>CE2</option>
+                <option>CM1</option><option>CM2</option>
+                <option>6ème</option><option>5ème</option><option>4ème</option><option>3ème</option>
+                <option>2nde</option><option>1ère</option><option>Terminale</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Année scolaire</label>
+              <input type="text" name="anneeScolaire" class="form-control" value="2025-2026" placeholder="2025-2026">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-warning text-dark"><i class="bi bi-check-lg me-1"></i>Créer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modals Edit par classe -->
+<div th:each="c : ${classes}">
+  <div class="modal fade" th:id="'editClasse' + ${c.id}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form th:action="@{/gestion-classes/{id}/modifier(id=${c.id})}" method="post">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Modifier la classe</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Nom *</label>
+                <input type="text" name="nom" class="form-control" th:value="${c.nom}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Niveau</label>
+                <input type="text" name="niveau" class="form-control" th:value="${c.niveau}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Année scolaire</label>
+                <input type="text" name="anneeScolaire" class="form-control" th:value="${c.anneeScolaire}">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

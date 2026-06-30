@@ -1,0 +1,330 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saisie rapide des notes – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .note-input{width:90px;text-align:center;font-size:1.1rem;font-weight:600}
+    .note-input:focus{background:#fffde7;border-color:#ffc107;box-shadow:0 0 0 .2rem rgba(255,193,7,.25)}
+    .note-input.is-valid-note{background:#f0fff4;border-color:#28a745}
+    .note-input.is-invalid-note{background:#fff0f0;border-color:#dc3545}
+    .student-row:hover{background:#f8faff}
+    .counter-badge{font-size:.85rem;font-weight:600}
+    .sticky-bottom-bar{position:sticky;bottom:0;background:white;border-top:1px solid #dee2e6;padding:1rem 1.5rem;z-index:10}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/notes}">Notes</a></li>
+        <li class="breadcrumb-item active">Saisie rapide</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-lightning-fill text-warning me-2"></i>Saisie rapide des notes</h4>
+        <p class="text-muted small mb-0">Choisissez la matière et la classe, puis saisissez les notes au clavier.</p>
+      </div>
+      <a th:href="@{/notes}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-journal-text me-1"></i>Vue classique
+      </a>
+    </div>
+
+    <!-- Alerte autorisation refusée -->
+    <div th:if="${erreurAuth}" class="alert alert-danger alert-dismissible d-flex gap-2 align-items-center mb-3">
+      <i class="bi bi-shield-exclamation fs-5"></i>
+      <div><strong>Accès refusé.</strong> <span th:text="${erreurAuth}"></span></div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Alert succès -->
+    <div th:if="${param.saved}" class="alert alert-success alert-dismissible d-flex gap-2 align-items-center mb-3">
+      <i class="bi bi-check-circle-fill fs-5"></i>
+      <div>
+        <strong th:text="${param.saved[0]} + ' note(s) enregistrée(s) avec succès.'"></strong>
+        Notes enregistrées pour le Trimestre <span th:text="${param.trimestre}"></span>.
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- ===== Formulaire de sélection ===== -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-primary text-white py-3">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-sliders me-1"></i>Paramètres de la saisie</h6>
+      </div>
+      <div class="card-body">
+        <form method="get" th:action="@{/notes/saisie}" id="selectionForm">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Matière *</label>
+              <select name="matiereId" class="form-select" required id="selectMatiere" onchange="updateCoeff()">
+                <option value="">— Choisir une matière —</option>
+                <option th:each="m : ${matieres}"
+                        th:value="${m.id}"
+                        th:text="${m.nom + ' (coeff ' + m.coefficient + ')'}"
+                        th:selected="${selectedMatiereId != null and selectedMatiereId == m.id}"
+                        th:attr="data-coeff=${m.coefficient}"></option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Classe *</label>
+              <select name="classeId" class="form-select" required>
+                <option value="">— Choisir une classe —</option>
+                <option th:each="c : ${classes}"
+                        th:value="${c.id}"
+                        th:text="${c.nom}"
+                        th:selected="${selectedClasseId != null and selectedClasseId == c.id}"></option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Trimestre *</label>
+              <select name="trimestre" class="form-select" required>
+                <option value="">— Trimestre —</option>
+                <option value="1" th:selected="${selectedTrimestre == 1}">1er Trimestre</option>
+                <option value="2" th:selected="${selectedTrimestre == 2}">2e Trimestre</option>
+                <option value="3" th:selected="${selectedTrimestre == 3}">3e Trimestre</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Type d'évaluation *</label>
+              <select name="type" class="form-select" required>
+                <option value="DEVOIR"     th:selected="${selectedType == 'DEVOIR'}">Devoir</option>
+                <option value="EXAMEN"     th:selected="${selectedType == 'EXAMEN'}">Examen</option>
+                <option value="CONTROLE"   th:selected="${selectedType == 'CONTROLE'}">Contrôle</option>
+                <option value="PARTICIPATION" th:selected="${selectedType == 'PARTICIPATION'}">Participation</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Coefficient</label>
+              <input type="number" name="coefficient" id="inputCoeff" class="form-control" step="0.5" min="0.5" max="10"
+                     th:value="${selectedCoefficient ?: 1}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Date d'évaluation</label>
+              <input type="date" name="dateEvaluation" class="form-control"
+                     th:value="${selectedDate != null ? #temporals.format(selectedDate,'yyyy-MM-dd') : ''}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-people-fill me-1"></i>Charger les élèves
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== Tableau de saisie ===== -->
+    <div th:if="${eleves != null}">
+
+      <div th:if="${#lists.isEmpty(eleves)}" class="alert alert-warning d-flex gap-2 align-items-center">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <span>Aucun élève trouvé dans cette classe. <a th:href="@{/secretariat}">Gérer les élèves →</a></span>
+      </div>
+
+      <div th:unless="${#lists.isEmpty(eleves)}">
+        <form th:action="@{/notes/saisie/batch}" method="post" id="batchForm">
+          <input type="hidden" name="matiereId"      th:value="${selectedMatiereId}">
+          <input type="hidden" name="classeId"       th:value="${selectedClasseId}">
+          <input type="hidden" name="trimestre"      th:value="${selectedTrimestre}">
+          <input type="hidden" name="type"           th:value="${selectedType ?: 'DEVOIR'}">
+          <input type="hidden" name="coefficient"    th:value="${selectedCoefficient ?: 1}">
+          <input type="hidden" name="dateEvaluation" th:value="${selectedDate != null ? #temporals.format(selectedDate,'yyyy-MM-dd') : #temporals.format(#temporals.createNow(),'yyyy-MM-dd')}">
+
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+              <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                <div>
+                  <span class="fw-bold"><i class="bi bi-people-fill text-primary me-1"></i></span>
+                  <span class="fw-bold" th:text="${matiere?.nom ?: '–'}"></span>
+                  <span class="text-muted mx-1">·</span>
+                  <span th:text="${selectedTrimestre == 1 ? '1er Trimestre' : (selectedTrimestre == 2 ? '2e Trimestre' : '3e Trimestre')}"></span>
+                  <span class="text-muted mx-1">·</span>
+                  <span th:text="${#lists.size(eleves)} + ' élèves'"></span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                  <span class="badge bg-primary-subtle text-primary counter-badge">
+                    <span id="noteCount">0</span> / <span th:text="${#lists.size(eleves)}"></span> notes saisies
+                  </span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="fillAll(20)">
+                    Tout à 20
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="fillAll('')">
+                    Vider tout
+                  </button>
+                </div>
+              </div>
+              <div class="text-muted small mt-1">
+                <i class="bi bi-keyboard me-1"></i>
+                Utilisez <kbd>Tab</kbd> pour passer à l'élève suivant, <kbd>Shift+Tab</kbd> pour revenir.
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table align-middle mb-0" id="tableNotes">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:40px">#</th>
+                    <th>Élève</th>
+                    <th>Classe</th>
+                    <th style="width:130px">Note <span class="text-muted fw-normal small">(/20)</span></th>
+                    <th style="width:200px" class="d-none d-md-table-cell">Commentaire</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="student-row" th:each="eleve, stat : ${eleves}">
+                    <td class="text-muted small" th:text="${stat.count}"></td>
+                    <td>
+                      <div class="fw-semibold" th:text="${eleve.nom + ' ' + eleve.prenom}"></div>
+                      <div class="small text-muted" th:text="${eleve.matricule}"></div>
+                    </td>
+                    <td>
+                      <span class="badge bg-primary-subtle text-primary small" th:text="${eleve.classe?.nom}"></span>
+                    </td>
+                    <td>
+                      <input type="number"
+                             th:name="'note_' + ${eleve.id}"
+                             class="form-control note-input"
+                             th:tabindex="${stat.count}"
+                             min="0" max="20" step="0.25"
+                             placeholder="–"
+                             autocomplete="off"
+                             oninput="validateNote(this); updateCount()">
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                      <input type="text"
+                             th:name="'commentaire_' + ${eleve.id}"
+                             class="form-control form-control-sm"
+                             placeholder="Facultatif…"
+                             th:tabindex="${stat.count + 1000}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Sticky bottom bar -->
+            <div class="sticky-bottom-bar d-flex justify-content-between align-items-center gap-3">
+              <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Les cases vides seront ignorées. Les notes non comprises entre 0 et 20 seront ignorées.
+              </div>
+              <div class="d-flex gap-2">
+                <a th:href="@{/notes/saisie}" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+                </a>
+                <button type="submit" class="btn btn-success" id="btnSave">
+                  <i class="bi bi-save me-1"></i>Enregistrer toutes les notes
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Aide (affiché quand aucune sélection) -->
+    <div th:if="${eleves == null}" class="card border-0 border-dashed bg-transparent" style="border:2px dashed #dee2e6!important">
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-arrow-up-circle fs-1 d-block mb-3 opacity-25"></i>
+        <h6 class="text-muted">Sélectionnez une matière, une classe et un trimestre ci-dessus</h6>
+        <p class="small mb-0">Le tableau des élèves apparaîtra ici pour une saisie rapide.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+// Mapping matière → classes autorisées (enseignant uniquement)
+const matiereToClasses = /*[[${matiereToClasses != null ? matiereToClasses : {}}]]*/ {};
+const isEnseignant = /*[[${isEnseignant}]]*/ false;
+
+// Mettre à jour le coefficient automatiquement quand la matière change
+function updateCoeff() {
+  const sel = document.getElementById('selectMatiere');
+  const opt = sel.options[sel.selectedIndex];
+  const coeff = opt.getAttribute('data-coeff');
+  if (coeff) document.getElementById('inputCoeff').value = coeff;
+  if (isEnseignant) filterClassesByMatiere(sel.value);
+}
+
+// Filtrer la liste des classes selon la matière sélectionnée (enseignant)
+function filterClassesByMatiere(matiereId) {
+  if (!isEnseignant || !matiereId) return;
+  const classeSelect = document.querySelector('select[name="classeId"]');
+  if (!classeSelect) return;
+  const allowed = matiereToClasses[matiereId] || [];
+  Array.from(classeSelect.options).forEach(opt => {
+    if (opt.value === '') return; // garder l'option vide
+    opt.hidden = allowed.length > 0 && !allowed.includes(parseInt(opt.value));
+  });
+  // Si la valeur actuelle n'est plus autorisée, reset
+  if (classeSelect.value && allowed.length > 0 && !allowed.includes(parseInt(classeSelect.value))) {
+    classeSelect.value = '';
+  }
+}
+
+// Valider la note (0-20) et colorer la cellule
+function validateNote(input) {
+  const v = parseFloat(input.value);
+  input.classList.remove('is-valid-note', 'is-invalid-note');
+  if (input.value === '') return;
+  if (!isNaN(v) && v >= 0 && v <= 20) {
+    input.classList.add('is-valid-note');
+  } else {
+    input.classList.add('is-invalid-note');
+  }
+}
+
+// Compter les notes saisies
+function updateCount() {
+  const inputs = document.querySelectorAll('.note-input');
+  let count = 0;
+  inputs.forEach(inp => {
+    const v = parseFloat(inp.value);
+    if (inp.value !== '' && !isNaN(v) && v >= 0 && v <= 20) count++;
+  });
+  const el = document.getElementById('noteCount');
+  if (el) el.textContent = count;
+}
+
+// Remplir toutes les notes
+function fillAll(val) {
+  document.querySelectorAll('.note-input').forEach(inp => {
+    inp.value = val;
+    validateNote(inp);
+  });
+  updateCount();
+}
+
+// Confirmer avant envoi si aucune note saisie
+document.getElementById('batchForm')?.addEventListener('submit', function(e) {
+  const count = parseInt(document.getElementById('noteCount')?.textContent || '0');
+  if (count === 0) {
+    if (!confirm('Aucune note saisie. Enregistrer quand même ?')) e.preventDefault();
+  }
+});
+
+// Mise à jour initiale du coefficient
+updateCoeff();
+// Autofocus sur le premier champ de note
+window.addEventListener('DOMContentLoaded', () => {
+  const first = document.querySelector('.note-input');
+  if (first) setTimeout(() => first.focus(), 100);
+});
+</script>
+</body>
+</html>

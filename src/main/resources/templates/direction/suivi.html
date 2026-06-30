@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suivi des saisies – Direction</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}
+    .page-wrap{display:flex;min-height:100vh}
+    .main{flex:1;overflow-y:auto}
+    .badge-complet{background:#198754;color:#fff;padding:.3rem .75rem;border-radius:20px;font-size:.78rem;font-weight:600}
+    .badge-en-cours{background:#ffc107;color:#212529;padding:.3rem .75rem;border-radius:20px;font-size:.78rem;font-weight:600}
+    .badge-non-rempli{background:#dc3545;color:#fff;padding:.3rem .75rem;border-radius:20px;font-size:.78rem;font-weight:600}
+    .progress-thin{height:6px;border-radius:3px}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-clipboard2-data me-2 text-primary"></i>Suivi des saisies</h4>
+        <p class="text-muted small mb-0">Vue direction — état des notes par enseignant, matière et classe</p>
+      </div>
+      <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Tableau de bord
+      </a>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <form method="get" action="/direction/suivi" class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Enseignant</label>
+            <input type="text" name="filtreEnseignant" class="form-control form-control-sm"
+                   placeholder="Rechercher par nom…" th:value="${filtreEnseignant}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Matière</label>
+            <select name="filtreMatiere" class="form-select form-select-sm">
+              <option value="">— Toutes —</option>
+              <option th:each="m : ${matieres}" th:value="${m.id}" th:text="${m.nom}"
+                      th:selected="${filtreMatiere != null and filtreMatiere == m.id}"></option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Classe</label>
+            <select name="filtreClasse" class="form-select form-select-sm">
+              <option value="">— Toutes —</option>
+              <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.nom}"
+                      th:selected="${filtreClasse != null and filtreClasse == c.id}"></option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="bi bi-search me-1"></i>Filtrer
+            </button>
+            <a href="/direction/suivi" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-x"></i>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fs-1 fw-bold text-success"
+               th:text="${#lists.size(suiviRows.?[statut == 'COMPLET'])}">0</div>
+          <div class="text-muted small">Complètes</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fs-1 fw-bold text-warning"
+               th:text="${#lists.size(suiviRows.?[statut == 'EN_COURS'])}">0</div>
+          <div class="text-muted small">En cours</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="fs-1 fw-bold text-danger"
+               th:text="${#lists.size(suiviRows.?[statut == 'NON_REMPLI'])}">0</div>
+          <div class="text-muted small">Non remplies</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau de suivi -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-table text-primary"></i>
+        <span class="fw-semibold">Détail par assignation</span>
+        <span class="badge bg-secondary ms-auto" th:text="${#lists.size(suiviRows)} + ' ligne(s)'"></span>
+      </div>
+      <div class="card-body p-0">
+        <div th:if="${#lists.isEmpty(suiviRows)}" class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+          Aucune autorisation configurée ou aucun résultat pour ces filtres.
+        </div>
+        <div th:unless="${#lists.isEmpty(suiviRows)}" class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Enseignant</th>
+                <th>Matière</th>
+                <th>Classe</th>
+                <th>Progression</th>
+                <th>Dernière saisie</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="row : ${suiviRows}">
+                <td>
+                  <i class="bi bi-person me-1 text-muted"></i>
+                  <span th:text="${row.enseignantNom}"></span>
+                </td>
+                <td th:text="${row.matiereNom}"></td>
+                <td th:text="${row.classeNom}"></td>
+                <td style="min-width:160px">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1 progress-thin">
+                      <div class="progress-bar"
+                           th:classappend="${row.statut == 'COMPLET'} ? 'bg-success' : (${row.statut == 'EN_COURS'} ? 'bg-warning' : 'bg-danger')"
+                           th:style="'width:' + (${row.totalEleves > 0} ? (${row.nbElevesSaisies * 100 / row.totalEleves}) : 0) + '%'"></div>
+                    </div>
+                    <small class="text-muted text-nowrap"
+                           th:text="${row.nbElevesSaisies} + '/' + ${row.totalEleves}"></small>
+                  </div>
+                </td>
+                <td>
+                  <span th:if="${row.derniereSaisie == null}" class="text-muted small">—</span>
+                  <span th:unless="${row.derniereSaisie == null}" class="small"
+                        th:text="${#temporals.format(row.derniereSaisie, 'dd/MM/yyyy HH:mm')}"></span>
+                </td>
+                <td>
+                  <span th:if="${row.statut == 'COMPLET'}"    class="badge-complet">Complet</span>
+                  <span th:if="${row.statut == 'EN_COURS'}"   class="badge-en-cours">En cours</span>
+                  <span th:if="${row.statut == 'NON_REMPLI'}" class="badge-non-rempli">Non rempli</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /page-wrap -->
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

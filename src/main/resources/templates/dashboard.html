@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .kpi{border:0;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);transition:transform .15s}
+    .kpi:hover{transform:translateY(-2px)}
+    .kpi-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+    .quick-link{border:0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);transition:transform .15s,box-shadow .15s;cursor:pointer;text-decoration:none;color:inherit}
+    .quick-link:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12);color:inherit}
+    .quick-icon{font-size:2rem}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0">Tableau de bord</h4>
+        <p class="text-muted small mb-0">
+          Bienvenue, <strong sec:authentication="name"></strong> —
+          <span class="badge bg-primary-subtle text-primary ms-1" sec:authentication="authorities"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Alertes automatiques -->
+    <div th:if="${alertes != null and !#lists.isEmpty(alertes)}" class="mb-4">
+      <div th:each="a : ${alertes}"
+           th:classappend="${a.niveau() == 'danger'} ? 'alert-danger' : (${a.niveau() == 'warning'} ? 'alert-warning' : 'alert-info')"
+           class="alert alert-dismissible d-flex align-items-center gap-2 py-2 px-3 mb-2 fade show" role="alert">
+        <i th:classappend="${a.icone()}" class="bi fs-5 flex-shrink-0"></i>
+        <span class="flex-grow-1 small fw-semibold" th:text="${a.message()}"></span>
+        <a th:href="${a.lien()}" class="btn btn-sm btn-outline-secondary py-0 px-2">Voir</a>
+        <button type="button" class="btn-close ms-1" data-bs-dismiss="alert"></button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-xl-3" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE','ENSEIGNANT')">
+        <div class="card kpi p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-people-fill"></i></div>
+            <div>
+              <div class="fs-2 fw-bold lh-1" th:text="${totalEleves}">0</div>
+              <div class="small text-muted">Élèves</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+        <div class="card kpi p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-building-fill"></i></div>
+            <div>
+              <div class="fs-2 fw-bold lh-1" th:text="${totalClasses}">0</div>
+              <div class="small text-muted">Classes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3" sec:authorize="hasAnyRole('ADMIN','TRESORIER')">
+        <div class="card kpi p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-cash-coin"></i></div>
+            <div>
+              <div class="fw-bold lh-1" style="font-size:1rem" th:text="${#numbers.formatDecimal(totalEncaisse,1,'COMMA',0,'POINT')+' F'}">0</div>
+              <div class="small text-muted">Encaissé</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT','SECRETAIRE')">
+        <div class="card kpi p-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+              <div class="fs-2 fw-bold lh-1" th:text="${totalAbsences}">0</div>
+              <div class="small text-muted">Absences</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget progress (ADMIN/TRESORIER uniquement) -->
+    <div class="card border-0 shadow-sm mb-4 p-3" sec:authorize="hasAnyRole('ADMIN','TRESORIER')">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-semibold small"><i class="bi bi-bar-chart-fill text-primary me-1"></i>Budget 2025-2026 — Taux d'encaissement</span>
+        <a th:href="@{/finances}" class="btn btn-outline-primary btn-sm py-0 px-2">Détails</a>
+      </div>
+      <div class="progress mb-1" style="height:10px;border-radius:6px" th:with="taux=${budgetRevenu > 0 ? (totalEncaisse/budgetRevenu*100 > 100 ? 100 : totalEncaisse/budgetRevenu*100) : 0}">
+        <div class="progress-bar bg-success" th:style="${'width:'+taux+'%'}"></div>
+      </div>
+      <div class="d-flex justify-content-between" style="font-size:.78rem">
+        <span class="text-muted">Encaissé : <strong th:text="${#numbers.formatDecimal(totalEncaisse,1,'COMMA',0,'POINT')+' FCFA'}"></strong></span>
+        <span class="text-muted">Prévu : <strong th:text="${#numbers.formatDecimal(budgetRevenu,1,'COMMA',0,'POINT')+' FCFA'}"></strong></span>
+      </div>
+    </div>
+
+    <!-- Graphiques (ADMIN uniquement) -->
+    <div class="row g-3 mb-4" sec:authorize="hasRole('ADMIN')">
+      <div class="col-md-5">
+        <div class="card border-0 shadow-sm p-3 h-100">
+          <h6 class="fw-semibold mb-3 small"><i class="bi bi-pie-chart-fill text-warning me-1"></i>Répartition des notes</h6>
+          <canvas id="chartNotes" height="140"></canvas>
+        </div>
+      </div>
+      <div class="col-md-7">
+        <div class="card border-0 shadow-sm p-3 h-100">
+          <h6 class="fw-semibold mb-3 small"><i class="bi bi-graph-up text-success me-1"></i>Paiements par mois</h6>
+          <canvas id="chartPaiements" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accès rapide -->
+    <h6 class="fw-semibold mb-3 text-muted text-uppercase" style="font-size:.75rem;letter-spacing:.06em">Accès rapide</h6>
+    <div class="row g-3">
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+        <a th:href="@{/secretariat}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-person-lines-fill quick-icon text-primary d-block mb-2"></i>
+            <div class="fw-semibold small">Secrétariat</div>
+            <div class="text-muted" style="font-size:.72rem">Élèves, inscriptions</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','TRESORIER')">
+        <a th:href="@{/finances}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-cash-coin quick-icon text-success d-block mb-2"></i>
+            <div class="fw-semibold small">Finances</div>
+            <div class="text-muted" style="font-size:.72rem">Paiements, budget</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')">
+        <a th:href="@{/notes}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-journal-text quick-icon text-info d-block mb-2"></i>
+            <div class="fw-semibold small">Saisie des notes</div>
+            <div class="text-muted" style="font-size:.72rem">Évaluations, bulletins</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')">
+        <a th:href="@{/surveillance}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-eye-fill quick-icon text-warning d-block mb-2"></i>
+            <div class="fw-semibold small">Surveillance</div>
+            <div class="text-muted" style="font-size:.72rem">Absences du jour</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasRole('ADMIN')">
+        <a th:href="@{/personnel}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-people-fill quick-icon text-secondary d-block mb-2"></i>
+            <div class="fw-semibold small">Personnel & RH</div>
+            <div class="text-muted" style="font-size:.72rem">Contrats, congés</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','SECRETAIRE')">
+        <a th:href="@{/communication}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-chat-dots-fill quick-icon text-danger d-block mb-2"></i>
+            <div class="fw-semibold small">Communication</div>
+            <div class="text-muted" style="font-size:.72rem">Messages, parents</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','ELEVE','SECRETAIRE')">
+        <a th:href="@{/portail}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-house-door-fill quick-icon text-primary d-block mb-2"></i>
+            <div class="fw-semibold small">Portail élève</div>
+            <div class="text-muted" style="font-size:.72rem">Notes, absences, paiements</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3" sec:authorize="hasAnyRole('ADMIN','ENSEIGNANT')">
+        <a th:href="@{/tableau-enseignant}" class="card quick-link d-block">
+          <div class="card-body text-center p-3">
+            <i class="bi bi-mortarboard-fill quick-icon text-dark d-block mb-2"></i>
+            <div class="fw-semibold small">Espace enseignant</div>
+            <div class="text-muted" style="font-size:.72rem">Cours, planning</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script th:inline="javascript">
+  var paiementsLabels = /*[[${paiementsLabels}]]*/ [];
+  var paiementsData   = /*[[${paiementsData}]]*/ [];
+  var notesMentions   = /*[[${notesMentions}]]*/ [0,0,0,0,0];
+
+  if (document.getElementById('chartPaiements')) {
+    new Chart(document.getElementById('chartPaiements'), {
+      type: 'bar',
+      data: { labels: paiementsLabels,
+        datasets: [{ label: 'FCFA', data: paiementsData, backgroundColor: 'rgba(34,197,94,.7)', borderRadius: 4 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+  if (document.getElementById('chartNotes')) {
+    new Chart(document.getElementById('chartNotes'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Très bien ≥16', 'Bien 14-15', 'Assez bien 12-13', 'Passable 10-11', 'Insuffisant <10'],
+        datasets: [{ data: notesMentions, backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#6366f1','#ef4444'] }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+    });
+  }
+</script>
+</body>
+</html>

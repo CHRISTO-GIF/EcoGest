@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="fr"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestion des salles – HolyFlame</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+    <style>
+        body { background: #f0f4f8; margin: 0; }
+        .page-wrap { display: flex; min-height: 100vh; }
+        .main { flex: 1; overflow-y: auto; }
+        .salle-card { border: none; border-radius: .5rem; transition: transform .15s; }
+        .salle-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <div class="main p-4">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+                <li class="breadcrumb-item active">Gestion des salles</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold mb-0"><i class="bi bi-building text-warning me-2"></i>Gestion des salles</h4>
+            <button class="btn btn-warning btn-sm text-dark">
+                <i class="bi bi-plus-circle me-1"></i>Ajouter une salle
+            </button>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-4" th:each="n : ${#numbers.sequence(1, 6)}">
+                <div class="card salle-card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-3 p-3 bg-warning bg-opacity-10">
+                                <i class="bi bi-door-closed fs-3 text-warning"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold" th:text="'Salle ' + ${n}"></div>
+                                <div class="text-muted small">Capacité : 35 places</div>
+                                <span class="badge bg-success-subtle text-success small">Disponible</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4 small">
+            <i class="bi bi-info-circle me-1"></i>
+            La gestion dynamique des salles sera disponible dans la prochaine version.
+        </div>
+    </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

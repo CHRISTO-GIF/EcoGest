@@ -1,0 +1,465 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${personnel.nom + ' ' + personnel.prenom + ' – HolyFlame'}">Fiche</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .avatar-lg{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.5rem;flex-shrink:0}
+    .doc-item{display:flex;align-items:center;gap:.75rem;padding:.75rem;border:1px solid #e9ecef;border-radius:.5rem;background:#fff;margin-bottom:.5rem;transition:box-shadow .15s}
+    .doc-item:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .doc-icon{width:40px;height:40px;border-radius:.4rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .nav-tabs .nav-link.active{background:#0b1f3a;color:#fff;border-color:#0b1f3a}
+    .nav-tabs .nav-link{color:#0b1f3a;font-weight:500}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/personnel}">Personnel &amp; RH</a></li>
+        <li class="breadcrumb-item active" th:text="${personnel.nom + ' ' + personnel.prenom}"></li>
+      </ol>
+    </nav>
+
+    <div th:if="${param.saved}" class="alert alert-success alert-dismissible d-flex gap-2 align-items-center mb-3">
+      <i class="bi bi-check-circle-fill"></i><span>Modifications enregistrées.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.uploaded}" class="alert alert-success alert-dismissible d-flex gap-2 align-items-center mb-3">
+      <i class="bi bi-check-circle-fill"></i><span>Document téléversé avec succès.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.error}" class="alert alert-danger alert-dismissible d-flex gap-2 align-items-center mb-3">
+      <i class="bi bi-exclamation-triangle-fill"></i><span>Erreur lors du téléversement.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Colonne gauche -->
+      <div class="col-lg-3">
+        <div class="card border-0 shadow-sm sticky-top" style="top:1rem">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div class="avatar-lg"
+                   th:text="${#strings.substring(personnel.nom,0,1)+#strings.substring(personnel.prenom,0,1)}"
+                   th:style="${personnel.statut=='ACTIF'?'background:#e8f0fe;color:#1a73e8':'background:#f5f5f5;color:#9aa0a6'}"></div>
+              <div>
+                <h6 class="fw-bold mb-1" th:text="${personnel.nom+' '+personnel.prenom}"></h6>
+                <span class="badge"
+                      th:classappend="${personnel.fonction=='ENSEIGNANT'?'bg-primary-subtle text-primary':personnel.fonction=='DIRECTEUR'?'bg-dark-subtle text-dark':'bg-secondary-subtle text-secondary'}"
+                      th:text="${personnel.fonction?:'AUTRE'}"></span>
+                <span class="ms-1 badge"
+                      th:classappend="${personnel.statut=='ACTIF'?'bg-success-subtle text-success':'bg-secondary-subtle text-secondary'}"
+                      th:text="${personnel.statut?:'ACTIF'}"></span>
+              </div>
+            </div>
+
+            <ul class="list-unstyled mb-3 small">
+              <li class="d-flex gap-2 mb-2" th:if="${personnel.matiereEnseignee}">
+                <i class="bi bi-book-fill text-primary mt-1 flex-shrink-0"></i>
+                <div><div class="text-muted">Matière</div><div th:text="${personnel.matiereEnseignee}"></div></div>
+              </li>
+              <li class="d-flex gap-2 mb-2" th:if="${personnel.email}">
+                <i class="bi bi-envelope-fill text-info mt-1 flex-shrink-0"></i>
+                <div><div class="text-muted">Email</div><div th:text="${personnel.email}"></div></div>
+              </li>
+              <li class="d-flex gap-2 mb-2" th:if="${personnel.telephone}">
+                <i class="bi bi-telephone-fill text-success mt-1 flex-shrink-0"></i>
+                <div><div class="text-muted">Téléphone</div><div th:text="${personnel.telephone}"></div></div>
+              </li>
+              <li class="d-flex gap-2 mb-2" th:if="${personnel.adresse}">
+                <i class="bi bi-geo-alt-fill text-warning mt-1 flex-shrink-0"></i>
+                <div><div class="text-muted">Adresse</div><div th:text="${personnel.adresse}"></div></div>
+              </li>
+              <li class="d-flex gap-2 mb-2" th:if="${personnel.dateEmbauche}">
+                <i class="bi bi-calendar2-check-fill text-secondary mt-1 flex-shrink-0"></i>
+                <div><div class="text-muted">Embauche</div>
+                  <div th:text="${#temporals.format(personnel.dateEmbauche,'dd/MM/yyyy')}"></div></div>
+              </li>
+            </ul>
+
+            <div th:if="${personnel.remarques}" class="bg-light rounded p-2 mb-3 small text-muted">
+              <i class="bi bi-chat-text me-1"></i><span th:text="${personnel.remarques}"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#modalEdit">
+                <i class="bi bi-pencil me-1"></i>Modifier
+              </button>
+              <a th:href="@{/personnel}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne droite : onglets -->
+      <div class="col-lg-9">
+        <ul class="nav nav-tabs mb-3" id="ficheTabs">
+          <li class="nav-item"><a class="nav-link active" href="#documents" data-bs-toggle="tab" id="tab-documents">
+            <i class="bi bi-folder2-open me-1"></i>Documents
+            <span class="badge bg-secondary ms-1" th:text="${#lists.size(documents)}"></span>
+          </a></li>
+          <li class="nav-item"><a class="nav-link" href="#rh-contrats" data-bs-toggle="tab" id="tab-contrats">
+            <i class="bi bi-file-text me-1"></i>Contrats
+            <span class="badge bg-secondary ms-1" th:text="${#lists.size(contrats)}"></span>
+          </a></li>
+          <li class="nav-item"><a class="nav-link" href="#rh-conges" data-bs-toggle="tab" id="tab-conges">
+            <i class="bi bi-calendar-check me-1"></i>Congés
+            <span class="badge bg-secondary ms-1" th:text="${#lists.size(conges)}"></span>
+          </a></li>
+          <li class="nav-item"><a class="nav-link" href="#rh-salaires" data-bs-toggle="tab" id="tab-salaires">
+            <i class="bi bi-wallet2 me-1"></i>Salaires
+            <span class="badge bg-secondary ms-1" th:text="${#lists.size(salaires)}"></span>
+          </a></li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- ===== DOCUMENTS ===== -->
+          <div class="tab-pane fade show active" id="documents">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <form th:action="@{/personnel/{id}/documents(id=${personnel.id})}" method="post"
+                      enctype="multipart/form-data" class="card bg-light border-0 p-3 mb-4">
+                  <div class="fw-semibold small mb-2"><i class="bi bi-cloud-upload me-1 text-primary"></i>Ajouter un document</div>
+                  <div class="row g-2">
+                    <div class="col-md-4">
+                      <select name="typeDocument" class="form-select form-select-sm" required>
+                        <option value="">— Type —</option>
+                        <option value="DIPLOME">Diplôme</option>
+                        <option value="ACTE_NAISSANCE">Acte de naissance</option>
+                        <option value="CARTE_NNI">Carte NNI</option>
+                        <option value="CONTRAT">Contrat signé</option>
+                        <option value="CERTIFICAT">Certificat médical</option>
+                        <option value="AUTRE">Autre</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <input type="file" name="fichier" class="form-control form-control-sm" required
+                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                    </div>
+                    <div class="col-md-2">
+                      <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-upload"></i></button>
+                    </div>
+                  </div>
+                  <div class="text-muted mt-1" style="font-size:.72rem">PDF, JPG, PNG, DOC — max 10 Mo</div>
+                </form>
+
+                <div th:if="${#lists.isEmpty(documents)}" class="text-center text-muted py-4">
+                  <i class="bi bi-folder-x fs-1 d-block mb-2 opacity-25"></i>Aucun document
+                </div>
+
+                <th:block th:each="entry : ${docsByType}">
+                  <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <i class="bi bi-file-earmark-fill text-secondary"></i>
+                      <span class="fw-semibold small text-uppercase text-muted" th:text="${entry.key}"></span>
+                    </div>
+                    <div th:each="doc : ${entry.value}">
+                      <div class="doc-item">
+                        <div class="doc-icon bg-light text-secondary"><i class="bi bi-file-earmark-fill"></i></div>
+                        <div class="flex-grow-1 min-w-0">
+                          <div class="fw-semibold text-truncate small" th:text="${doc.nomOriginal}"></div>
+                          <div class="text-muted" style="font-size:.72rem"
+                               th:text="${(doc.taille!=null?(doc.taille/1024)+' Ko – ':'')+( doc.dateUpload!=null?#temporals.format(doc.dateUpload,'dd/MM/yyyy'):'')}"></div>
+                        </div>
+                        <div class="d-flex gap-1">
+                          <a th:href="@{/personnel/{id}/documents/{dId}/telecharger(id=${personnel.id},dId=${doc.id})}"
+                             class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                          <form th:action="@{/personnel/{id}/documents/{dId}/supprimer(id=${personnel.id},dId=${doc.id})}"
+                                method="post" onsubmit="return confirm('Supprimer ?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </th:block>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== CONTRATS ===== -->
+          <div class="tab-pane fade" id="rh-contrats">
+            <div class="d-flex justify-content-end mb-2">
+              <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalContrat">
+                <i class="bi bi-plus-lg me-1"></i>Nouveau contrat
+              </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light">
+                    <tr><th>Type</th><th>Début</th><th>Fin</th><th class="text-end">Salaire base</th><th>Statut</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="c : ${contrats}">
+                      <td><span class="badge text-bg-secondary" th:text="${c.typeContrat}"></span></td>
+                      <td th:text="${c.dateDebut}"></td>
+                      <td th:text="${c.dateFin != null ? c.dateFin : '—'}"></td>
+                      <td class="text-end" th:text="${c.salaireBase != null ? #numbers.formatDecimal(c.salaireBase,1,'COMMA',0,'POINT')+' FCFA' : '—'}"></td>
+                      <td><span th:class="${'badge '+(c.statut=='ACTIF'?'text-bg-success':c.statut=='EXPIRE'?'text-bg-warning':'text-bg-danger')}"
+                                th:text="${c.statut}"></span></td>
+                      <td>
+                        <button class="btn btn-link btn-sm p-0 text-danger"
+                                th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-c-'+${c.id}).submit()}|">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <form th:id="|del-c-${c.id}|" th:action="@{'/rh/contrats/'+${c.id}+'/supprimer'}" method="post" class="d-none"></form>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(contrats)}">
+                      <td colspan="6" class="text-center text-muted py-4 fst-italic">Aucun contrat</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== CONGÉS ===== -->
+          <div class="tab-pane fade" id="rh-conges">
+            <div class="d-flex justify-content-end mb-2">
+              <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalConge">
+                <i class="bi bi-plus-lg me-1"></i>Demande de congé
+              </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light">
+                    <tr><th>Type</th><th>Début</th><th>Fin</th><th>Jours</th><th>Motif</th><th>Statut</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="c : ${conges}">
+                      <td class="small" th:text="${c.typeConge}"></td>
+                      <td th:text="${c.dateDebut}"></td>
+                      <td th:text="${c.dateFin}"></td>
+                      <td th:text="${c.joursNombre}"></td>
+                      <td class="small text-muted" th:text="${c.motif}"></td>
+                      <td><span th:class="${'badge '+(c.statut=='APPROUVE'?'text-bg-success':c.statut=='EN_ATTENTE'?'text-bg-warning':'text-bg-danger')}"
+                                th:text="${c.statut}"></span></td>
+                      <td class="text-end" style="white-space:nowrap">
+                        <form th:if="${c.statut=='EN_ATTENTE'}" th:action="@{'/rh/conges/'+${c.id}+'/approuver'}" method="post" class="d-inline">
+                          <button type="submit" class="btn btn-outline-success btn-sm py-0 px-1" title="Approuver"><i class="bi bi-check-lg"></i></button>
+                        </form>
+                        <form th:if="${c.statut=='EN_ATTENTE'}" th:action="@{'/rh/conges/'+${c.id}+'/refuser'}" method="post" class="d-inline">
+                          <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" title="Refuser"><i class="bi bi-x-lg"></i></button>
+                        </form>
+                        <button class="btn btn-link btn-sm p-0 text-danger"
+                                th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-cg-'+${c.id}).submit()}|">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <form th:id="|del-cg-${c.id}|" th:action="@{'/rh/conges/'+${c.id}+'/supprimer'}" method="post" class="d-none"></form>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(conges)}">
+                      <td colspan="7" class="text-center text-muted py-4 fst-italic">Aucune demande de congé</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== SALAIRES ===== -->
+          <div class="tab-pane fade" id="rh-salaires">
+            <div class="d-flex justify-content-end mb-2">
+              <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalSalaire">
+                <i class="bi bi-plus-lg me-1"></i>Nouveau bulletin
+              </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light">
+                    <tr><th>Mois</th><th>Année</th><th class="text-end">Base</th>
+                        <th class="text-end">Primes</th><th class="text-end">Retenues</th>
+                        <th class="text-end">Net</th><th>Statut</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="s : ${salaires}">
+                      <td th:text="${s.mois}"></td><td th:text="${s.annee}"></td>
+                      <td class="text-end small" th:text="${#numbers.formatDecimal(s.salaireBase,1,'COMMA',0,'POINT')}"></td>
+                      <td class="text-end small text-success" th:text="${'+'+#numbers.formatDecimal(s.primes!=null?s.primes:0,1,'COMMA',0,'POINT')}"></td>
+                      <td class="text-end small text-danger" th:text="${'-'+#numbers.formatDecimal(s.retenues!=null?s.retenues:0,1,'COMMA',0,'POINT')}"></td>
+                      <td class="text-end fw-bold" th:text="${#numbers.formatDecimal(s.net,1,'COMMA',0,'POINT')}"></td>
+                      <td><span th:class="${'badge '+(s.statut=='PAYE'?'text-bg-success':'text-bg-warning')}"
+                                th:text="${s.statut}"></span></td>
+                      <td class="text-end" style="white-space:nowrap">
+                        <form th:if="${s.statut=='EN_ATTENTE'}" th:action="@{'/rh/salaires/'+${s.id}+'/payer'}" method="post" class="d-inline">
+                          <button type="submit" class="btn btn-success btn-sm py-0 px-2" style="font-size:.75rem">Payé</button>
+                        </form>
+                        <button class="btn btn-link btn-sm p-0 text-danger"
+                                th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-s-'+${s.id}).submit()}|">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <form th:id="|del-s-${s.id}|" th:action="@{'/rh/salaires/'+${s.id}+'/supprimer'}" method="post" class="d-none"></form>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(salaires)}">
+                      <td colspan="8" class="text-center text-muted py-4 fst-italic">Aucun bulletin de salaire</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-content -->
+      </div>
+    </div><!-- /row -->
+  </div>
+</div>
+
+<!-- Modal Modifier -->
+<div class="modal fade" id="modalEdit" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form th:action="@{/personnel/{id}/modifier(id=${personnel.id})}" method="post" class="modal-content">
+      <div class="modal-header"><h6 class="modal-title fw-bold"><i class="bi bi-pencil me-1"></i>Modifier les informations</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body row g-3">
+        <div class="col-md-6"><label class="form-label">Nom *</label>
+          <input type="text" name="nom" class="form-control text-uppercase" required th:value="${personnel.nom}"></div>
+        <div class="col-md-6"><label class="form-label">Prénom *</label>
+          <input type="text" name="prenom" class="form-control" required th:value="${personnel.prenom}"></div>
+        <div class="col-md-6"><label class="form-label">Fonction *</label>
+          <select name="fonction" class="form-select" required>
+            <option th:each="f : ${ {'ENSEIGNANT','DIRECTEUR','SECRETAIRE','SURVEILLANT','COMPTABLE','AGENT_ENTRETIEN','AUTRE'} }"
+                    th:value="${f}" th:text="${f}" th:selected="${personnel.fonction==f}"></option>
+          </select></div>
+        <div class="col-md-6"><label class="form-label">Matière enseignée</label>
+          <input type="text" name="matiereEnseignee" class="form-control" th:value="${personnel.matiereEnseignee}"></div>
+        <div class="col-md-6"><label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" th:value="${personnel.email}"></div>
+        <div class="col-md-6"><label class="form-label">Téléphone</label>
+          <input type="tel" name="telephone" class="form-control" th:value="${personnel.telephone}"></div>
+        <div class="col-md-6"><label class="form-label">Date d'embauche</label>
+          <input type="date" name="dateEmbauche" class="form-control"
+                 th:value="${personnel.dateEmbauche!=null?#temporals.format(personnel.dateEmbauche,'yyyy-MM-dd'):''}"></div>
+        <div class="col-md-6"><label class="form-label">Statut</label>
+          <select name="statut" class="form-select">
+            <option value="ACTIF" th:selected="${personnel.statut=='ACTIF'}">Actif</option>
+            <option value="ARCHIVE" th:selected="${personnel.statut=='ARCHIVE'}">Archivé</option>
+          </select></div>
+        <div class="col-12"><label class="form-label">Adresse</label>
+          <input type="text" name="adresse" class="form-control" th:value="${personnel.adresse}"></div>
+        <div class="col-12"><label class="form-label">Remarques</label>
+          <textarea name="remarques" class="form-control" rows="2" th:text="${personnel.remarques}"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Contrat -->
+<div class="modal fade" id="modalContrat" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/rh/contrats}" method="post" class="modal-content">
+      <input type="hidden" name="personnelId" th:value="${personnel.id}">
+      <div class="modal-header"><h5 class="modal-title">Nouveau contrat</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body row g-3">
+        <div class="col-6"><label class="form-label fw-semibold">Type *</label>
+          <select name="typeContrat" class="form-select" required>
+            <option value="CDI">CDI</option><option value="CDD">CDD</option>
+            <option value="VACATAIRE">Vacataire</option><option value="STAGE">Stage</option>
+          </select></div>
+        <div class="col-6"><label class="form-label fw-semibold">Salaire base *</label>
+          <input type="number" step="1" name="salaireBase" class="form-control" required></div>
+        <div class="col-6"><label class="form-label fw-semibold">Date début *</label>
+          <input type="date" name="dateDebut" class="form-control" required></div>
+        <div class="col-6"><label class="form-label fw-semibold">Date fin (CDD)</label>
+          <input type="date" name="dateFin" class="form-control"></div>
+        <div class="col-12"><label class="form-label fw-semibold">Notes</label>
+          <textarea name="notes" class="form-control" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Congé -->
+<div class="modal fade" id="modalConge" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/rh/conges}" method="post" class="modal-content">
+      <input type="hidden" name="personnelId" th:value="${personnel.id}">
+      <div class="modal-header"><h5 class="modal-title">Demande de congé</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body row g-3">
+        <div class="col-12"><label class="form-label fw-semibold">Type de congé</label>
+          <select name="typeConge" class="form-select">
+            <option value="ANNUEL">Annuel</option><option value="MALADIE">Maladie</option>
+            <option value="MATERNITE">Maternité</option><option value="PATERNITE">Paternité</option>
+            <option value="SANS_SOLDE">Sans solde</option><option value="AUTRE">Autre</option>
+          </select></div>
+        <div class="col-6"><label class="form-label fw-semibold">Date début *</label>
+          <input type="date" name="dateDebut" class="form-control" required></div>
+        <div class="col-6"><label class="form-label fw-semibold">Date fin *</label>
+          <input type="date" name="dateFin" class="form-control" required></div>
+        <div class="col-12"><label class="form-label fw-semibold">Motif</label>
+          <textarea name="motif" class="form-control" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Soumettre</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Salaire -->
+<div class="modal fade" id="modalSalaire" tabindex="-1">
+  <div class="modal-dialog">
+    <form th:action="@{/rh/salaires}" method="post" class="modal-content">
+      <input type="hidden" name="personnelId" th:value="${personnel.id}">
+      <div class="modal-header"><h5 class="modal-title">Bulletin de salaire</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body row g-3">
+        <div class="col-6"><label class="form-label fw-semibold">Mois *</label>
+          <select name="mois" class="form-select" required>
+            <option th:each="m : ${#numbers.sequence(1,12)}" th:value="${m}"
+                    th:text="${{'Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'}[m-1]}"></option>
+          </select></div>
+        <div class="col-6"><label class="form-label fw-semibold">Année *</label>
+          <input type="number" name="annee" class="form-control" value="2026" required></div>
+        <div class="col-4"><label class="form-label fw-semibold">Salaire base *</label>
+          <input type="number" step="1" name="salaireBase" class="form-control" required></div>
+        <div class="col-4"><label class="form-label fw-semibold">Primes</label>
+          <input type="number" step="1" name="primes" class="form-control" value="0"></div>
+        <div class="col-4"><label class="form-label fw-semibold">Retenues</label>
+          <input type="number" step="1" name="retenues" class="form-control" value="0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+  var hash = window.location.hash;
+  if (hash) {
+    var t = document.getElementById('tab-' + hash.replace('#rh-','').replace('#',''));
+    if (t) new bootstrap.Tab(t).show();
+  }
+</script>
+</body>
+</html>

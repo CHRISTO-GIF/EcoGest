@@ -1,0 +1,218 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portail Élève / Parent – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .note-cell{font-weight:700;font-size:1rem}
+    .note-cell.bien{color:#16a34a}.note-cell.passable{color:#d97706}.note-cell.insuf{color:#dc2626}
+    .avatar-xl{width:72px;height:72px;border-radius:50%;background:#0b1f3a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.6rem;font-weight:700;flex-shrink:0}
+    .nav-pills .nav-link.active{background:#0b1f3a}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <!-- Pas de compte lié -->
+    <div th:if="${pasDeCompte}" class="text-center py-5">
+      <i class="bi bi-person-x-fill fs-1 text-secondary mb-3 d-block"></i>
+      <h5 class="fw-bold">Aucun dossier élève lié</h5>
+      <p class="text-muted">Votre compte n'est pas encore associé à un dossier élève.<br>
+        Contactez l'administration pour faire le lien.</p>
+      <a th:href="@{/dashboard}" class="btn btn-primary mt-2">Retour au tableau de bord</a>
+    </div>
+
+    <!-- Portail élève -->
+    <div th:if="${eleve != null}">
+
+      <!-- En-tête élève -->
+      <div class="card border-0 shadow-sm mb-4 p-4">
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+          <div class="avatar-xl" th:text="${#strings.substring(eleve.nom,0,1)+#strings.substring(eleve.prenom,0,1)}">EL</div>
+          <div class="flex-grow-1">
+            <h4 class="fw-bold mb-1" th:text="${eleve.nom+' '+eleve.prenom}">Nom Prénom</h4>
+            <div class="text-muted mb-1">
+              <span class="badge text-bg-primary me-1" th:text="${eleve.classe != null ? eleve.classe.nom : '—'}"></span>
+              <span class="small" th:if="${eleve.dateNaissance != null}">
+                <i class="bi bi-calendar3 me-1"></i><span th:text="${eleve.dateNaissance}"></span>
+              </span>
+            </div>
+            <div class="text-muted small" th:if="${eleve.emailParent != null}">
+              <i class="bi bi-envelope me-1"></i><span th:text="${eleve.emailParent}"></span>
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="fs-1 fw-bold" th:classappend="${moyenneGenerale >= 14 ? ' text-success' : moyenneGenerale >= 10 ? ' text-warning' : ' text-danger'}"
+                 th:text="${moyenneGenerale}">0</div>
+            <div class="small text-muted">Moyenne T<span th:text="${trimestre}"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sélecteur trimestre -->
+      <div class="mb-4">
+        <ul class="nav nav-pills gap-2">
+          <li class="nav-item" th:each="t : ${#numbers.sequence(1,3)}">
+            <a th:href="@{/portail(trimestre=${t})}"
+               th:classappend="${trimestre == t ? ' active' : ''}"
+               class="nav-link border"
+               th:text="${'Trimestre '+t}"></a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Onglets -->
+      <ul class="nav nav-tabs mb-3" id="portailTabs">
+        <li class="nav-item">
+          <a class="nav-link" href="#actuTab" data-bs-toggle="tab">
+            <i class="bi bi-megaphone-fill me-1"></i>Actualités
+            <span th:if="${!#lists.isEmpty(publications)}"
+                  class="badge text-bg-danger ms-1"
+                  th:text="${#lists.size(publications)}"></span>
+          </a>
+        </li>
+        <li class="nav-item"><a class="nav-link active" href="#notesTab" data-bs-toggle="tab"><i class="bi bi-journal-text me-1"></i>Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="#absencesTab" data-bs-toggle="tab"><i class="bi bi-person-x me-1"></i>Absences</a></li>
+        <li class="nav-item"><a class="nav-link" href="#paiementsTab" data-bs-toggle="tab"><i class="bi bi-cash-coin me-1"></i>Paiements</a></li>
+      </ul>
+
+      <div class="tab-content">
+
+        <!-- Actualités -->
+        <div class="tab-pane fade" id="actuTab">
+          <div th:if="${#lists.isEmpty(publications)}" class="text-center text-muted py-5">
+            <i class="bi bi-megaphone fs-1 d-block mb-2 opacity-25"></i>
+            <p>Aucune publication de l'école pour le moment.</p>
+          </div>
+          <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(publications)}">
+            <div class="card border-0 shadow-sm" th:each="pub : ${publications}"
+                 th:style="${pub.categorie == 'PROGRAMME'} ? 'border-left:4px solid #0d6efd' :
+                            (${pub.categorie == 'ANNONCE'} ? 'border-left:4px solid #fd7e14' :
+                            'border-left:4px solid #198754')">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                  <span class="badge"
+                        th:classappend="${pub.categorie == 'PROGRAMME'} ? 'text-bg-primary' :
+                                        (${pub.categorie == 'ANNONCE'} ? 'text-bg-warning' : 'text-bg-success')"
+                        th:text="${pub.categorie}"></span>
+                  <span class="text-muted small">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    <span th:text="${#temporals.format(pub.datePublication, 'dd/MM/yyyy')}"></span>
+                  </span>
+                </div>
+                <h6 class="fw-bold mb-1" th:text="${pub.titre}"></h6>
+                <p class="mb-0 text-muted small" style="white-space:pre-wrap" th:text="${pub.contenu}"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="tab-pane fade show active" id="notesTab">
+          <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr><th>Matière</th><th>Type</th><th>Date</th>
+                      <th class="text-end">Note /20</th><th>Coeff.</th><th>Commentaire</th></tr>
+                </thead>
+                <tbody>
+                  <tr th:each="n : ${notes}">
+                    <td class="fw-semibold small" th:text="${n.matiere != null ? n.matiere.nom : '—'}"></td>
+                    <td class="small" th:text="${n.type}"></td>
+                    <td class="small" th:text="${n.dateEvaluation}"></td>
+                    <td class="text-end">
+                      <span th:class="${'note-cell '+(n.valeur != null and n.valeur >= 14 ? 'bien' : n.valeur != null and n.valeur >= 10 ? 'passable' : 'insuf')}"
+                            th:text="${n.valeur}"></span>
+                    </td>
+                    <td class="small" th:text="${n.coefficient}"></td>
+                    <td class="small text-muted" th:text="${n.commentaire}"></td>
+                  </tr>
+                  <tr th:if="${#lists.isEmpty(notes)}">
+                    <td colspan="6" class="text-center text-muted py-4 fst-italic">
+                      Aucune note pour le trimestre <span th:text="${trimestre}"></span>
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot th:if="${!#lists.isEmpty(notes)}" class="table-light">
+                  <tr>
+                    <td colspan="3" class="text-end fw-semibold">Moyenne générale :</td>
+                    <td class="text-end fw-bold fs-5"
+                        th:classappend="${moyenneGenerale >= 14 ? ' text-success' : moyenneGenerale >= 10 ? ' text-warning' : ' text-danger'}"
+                        th:text="${moyenneGenerale}"></td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Absences -->
+        <div class="tab-pane fade" id="absencesTab">
+          <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr><th>Date</th><th>Période</th><th>Justifiée</th><th>Motif</th></tr>
+                </thead>
+                <tbody>
+                  <tr th:each="a : ${absences}">
+                    <td th:text="${a.date}"></td>
+                    <td th:text="${a.periode}"></td>
+                    <td>
+                      <span th:if="${a.estJustifiee}" class="badge text-bg-success">Oui</span>
+                      <span th:unless="${a.estJustifiee}" class="badge text-bg-danger">Non</span>
+                    </td>
+                    <td class="small text-muted" th:text="${a.motif}"></td>
+                  </tr>
+                  <tr th:if="${#lists.isEmpty(absences)}">
+                    <td colspan="4" class="text-center text-muted py-4 fst-italic">Aucune absence enregistrée</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paiements -->
+        <div class="tab-pane fade" id="paiementsTab">
+          <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr><th>Date</th><th>Type</th><th>Mode</th><th class="text-end">Montant</th><th>N° reçu</th></tr>
+                </thead>
+                <tbody>
+                  <tr th:each="p : ${paiements}">
+                    <td th:text="${p.datePaiement != null ? p.datePaiement.toString().substring(0,10) : ''}"></td>
+                    <td class="small" th:text="${p.typePaiement}"></td>
+                    <td class="small" th:text="${p.modePaiement}"></td>
+                    <td class="text-end fw-bold text-success"
+                        th:text="${p.montantVerse != null ? #numbers.formatDecimal(p.montantVerse,1,'COMMA',0,'POINT')+' FCFA' : ''}"></td>
+                    <td class="small text-muted" th:text="${p.recuNumero}"></td>
+                  </tr>
+                  <tr th:if="${#lists.isEmpty(paiements)}">
+                    <td colspan="5" class="text-center text-muted py-4 fst-italic">Aucun paiement enregistré</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tab-content -->
+    </div><!-- /eleve != null -->
+
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

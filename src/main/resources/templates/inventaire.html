@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inventaire – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .badge-neuf{background:#d1fae5;color:#065f46}.badge-bon{background:#dbeafe;color:#1e40af}
+    .badge-use{background:#fef3c7;color:#92400e}.badge-rep{background:#e0e7ff;color:#3730a3}
+    .badge-hs{background:#fee2e2;color:#991b1b}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-box-seam-fill text-primary me-2"></i>Inventaire &amp; Patrimoine</h4>
+        <p class="text-muted small mb-0">Suivi du matériel et équipements</p>
+      </div>
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjouter">
+        <i class="bi bi-plus-lg me-1"></i>Nouvel article
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-primary" th:text="${totalArticles}">0</div>
+          <div class="small text-muted">Articles</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-success" th:text="${totalNeuf}">0</div>
+          <div class="small text-muted">Neufs</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-warning" th:text="${totalReparation}">0</div>
+          <div class="small text-muted">En réparation</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <div class="display-6 fw-bold text-secondary" th:text="${#numbers.formatDecimal(valeurTotale,1,'COMMA',0,'POINT')}">0</div>
+          <div class="small text-muted">Valeur totale (FCFA)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau articles -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold py-2">
+        <i class="bi bi-list-ul me-2 text-primary"></i>Liste des articles
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Article</th><th>Catégorie</th><th>Qté</th><th>État</th><th>Localisation</th>
+                <th class="text-end">Valeur unit.</th><th>Fournisseur</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr th:each="a : ${articles}">
+              <td>
+                <div class="fw-semibold small" th:text="${a.nom}"></div>
+                <div class="text-muted" style="font-size:.75rem" th:text="${a.numSerie != null ? 'S/N: '+a.numSerie : ''}"></div>
+              </td>
+              <td><span class="badge text-bg-light" th:text="${a.categorie}"></span></td>
+              <td class="fw-bold" th:text="${a.quantite}"></td>
+              <td>
+                <span th:class="${'badge '+(a.etat=='NEUF' ? 'badge-neuf' : a.etat=='BON_ETAT' ? 'badge-bon' : a.etat=='USE' ? 'badge-use' : a.etat=='EN_REPARATION' ? 'badge-rep' : 'badge-hs')}"
+                      th:text="${a.etat}"></span>
+              </td>
+              <td class="small" th:text="${a.localisation}"></td>
+              <td class="text-end small" th:text="${a.valeurUnitaire != null ? #numbers.formatDecimal(a.valeurUnitaire,1,'COMMA',0,'POINT') : '-'}"></td>
+              <td class="small" th:text="${a.fournisseur}"></td>
+              <td class="text-end">
+                <button class="btn btn-outline-secondary btn-sm me-1" title="Mouvement"
+                        th:attr="data-id=${a.id},data-nom=${a.nom}"
+                        onclick="ouvrirMouvement(this)">
+                  <i class="bi bi-arrow-left-right"></i>
+                </button>
+                <button class="btn btn-link btn-sm p-0 text-danger"
+                        th:onclick="|if(confirm('Supprimer ?')){document.getElementById('del-a-'+${a.id}).submit()}|">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <form th:id="|del-a-${a.id}|" th:action="@{'/inventaire/'+${a.id}+'/supprimer'}" method="post" class="d-none"></form>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(articles)}">
+              <td colspan="8" class="text-center text-muted py-4 fst-italic">Aucun article enregistré</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Ajouter -->
+<div class="modal fade" id="modalAjouter" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form th:action="@{/inventaire}" method="post" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouvel article</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label fw-semibold">Nom *</label>
+            <input type="text" name="nom" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Quantité *</label>
+            <input type="number" name="quantite" class="form-control" value="1" min="0" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Catégorie</label>
+            <select name="categorie" class="form-select">
+              <option value="MOBILIER">Mobilier</option>
+              <option value="INFORMATIQUE">Informatique</option>
+              <option value="LIVRE">Livre</option>
+              <option value="SPORT">Sport</option>
+              <option value="MATERIEL_BUREAU">Matériel bureau</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">État</label>
+            <select name="etat" class="form-select">
+              <option value="NEUF">Neuf</option>
+              <option value="BON_ETAT">Bon état</option>
+              <option value="USE">Usé</option>
+              <option value="EN_REPARATION">En réparation</option>
+              <option value="HORS_SERVICE">Hors service</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Localisation</label>
+            <input type="text" name="localisation" class="form-control" placeholder="Salle 12, Magasin…">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Date d'acquisition</label>
+            <input type="date" name="dateAcquisition" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Valeur unitaire (FCFA)</label>
+            <input type="number" step="1" name="valeurUnitaire" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Fournisseur</label>
+            <input type="text" name="fournisseur" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">N° série</label>
+            <input type="text" name="numSerie" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Mouvement -->
+<div class="modal fade" id="modalMouvement" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="formMouvement" method="post" class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Mouvement – <span id="mvtNom"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Type</label>
+          <select name="type" class="form-select">
+            <option value="ENTREE">Entrée (augmentation stock)</option>
+            <option value="SORTIE">Sortie (diminution stock)</option>
+            <option value="REPARATION">Envoi en réparation</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Quantité</label>
+          <input type="number" name="quantite" class="form-control" value="1" min="1">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Date</label>
+          <input type="date" name="date" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Motif</label>
+          <input type="text" name="motif" class="form-control">
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Effectué par</label>
+          <input type="text" name="effectuePar" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+function ouvrirMouvement(btn){
+  var id = btn.getAttribute('data-id');
+  var nom = btn.getAttribute('data-nom');
+  document.getElementById('formMouvement').action = '/inventaire/' + id + '/mouvement';
+  document.getElementById('mvtNom').textContent = nom;
+  new bootstrap.Modal(document.getElementById('modalMouvement')).show();
+}
+</script>
+</body>
+</html>

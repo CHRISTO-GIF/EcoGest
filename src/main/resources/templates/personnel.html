@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personnel – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}
+    .page-wrap{display:flex;min-height:100vh}
+    .main{flex:1;overflow-y:auto}
+    .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0}
+    .row-hover:hover{background:#f8faff}
+    .form-panel{background:#fff;border:2px solid #0d6efd;border-radius:14px;padding:1.5rem;margin-bottom:1.5rem;animation:slideDown .25s ease}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+    .badge-fn{font-size:.72rem;padding:.28rem .65rem;border-radius:20px}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-person-badge-fill text-primary me-2"></i>Personnel &amp; RH</h4>
+        <p class="text-muted small mb-0">Gérez les membres du personnel et leurs dossiers</p>
+      </div>
+      <button class="btn btn-primary" id="btnShowForm" onclick="toggleForm()">
+        <i class="bi bi-person-plus-fill me-1"></i>Ajouter un membre
+      </button>
+    </div>
+
+    <!-- ── ALERTES ──────────────────────────────────────────────── -->
+    <div th:if="${successMsg}" class="alert alert-success alert-dismissible d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-check-circle-fill fs-5"></i>
+      <span th:text="${successMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${infoMsg}" class="alert alert-info alert-dismissible d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-info-circle-fill fs-5"></i>
+      <span th:text="${infoMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${migrationMsg}" class="alert alert-warning alert-dismissible d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-arrow-repeat fs-5"></i>
+      <span th:text="${migrationMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- ── FORMULAIRE D'AJOUT (panneau inline) ─────────────────── -->
+    <div class="form-panel" id="addForm" th:style="${param.showForm != null} ? 'display:block' : 'display:none'">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-primary">
+          <i class="bi bi-person-plus-fill me-2"></i>Nouveau membre du personnel
+        </h6>
+        <button type="button" class="btn-close" onclick="toggleForm()"></button>
+      </div>
+      <form th:action="@{/personnel}" method="post">
+        <div class="row g-3">
+          <!-- Identité -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Nom <span class="text-danger">*</span></label>
+            <input type="text" name="nom" class="form-control" required placeholder="NOM" autofocus
+                   style="text-transform:uppercase">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Prénom <span class="text-danger">*</span></label>
+            <input type="text" name="prenom" class="form-control" required placeholder="Prénom">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Fonction <span class="text-danger">*</span></label>
+            <select name="fonction" class="form-select" required>
+              <option value="">— Choisir —</option>
+              <option value="ENSEIGNANT">Enseignant(e)</option>
+              <option value="DIRECTEUR">Directeur / Directrice</option>
+              <option value="SECRETAIRE">Secrétaire</option>
+              <option value="SURVEILLANT">Surveillant(e)</option>
+              <option value="COMPTABLE">Comptable</option>
+              <option value="AGENT_ENTRETIEN">Agent d'entretien</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
+          <!-- Contact -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="email@exemple.com">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Téléphone</label>
+            <input type="tel" name="telephone" class="form-control" placeholder="07 00 00 00 00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Matière enseignée</label>
+            <input type="text" name="matiereEnseignee" class="form-control" placeholder="Ex : Mathématiques">
+          </div>
+          <!-- Dates & statut -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Date d'embauche</label>
+            <input type="date" name="dateEmbauche" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Statut</label>
+            <select name="statut" class="form-select">
+              <option value="ACTIF" selected>Actif</option>
+              <option value="ARCHIVE">Archivé</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Adresse</label>
+            <input type="text" name="adresse" class="form-control" placeholder="Quartier, ville…">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Remarques</label>
+            <textarea name="remarques" class="form-control" rows="2"
+                      placeholder="Notes libres, compétences particulières…"></textarea>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-person-check-fill me-1"></i>Enregistrer
+          </button>
+          <button type="button" class="btn btn-outline-secondary" onclick="toggleForm()">
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── KPIs ───────────────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <i class="bi bi-people-fill fs-2 text-primary mb-1"></i>
+          <div class="fw-bold fs-4" th:text="${totalPersonnels}">0</div>
+          <div class="text-muted small">Total personnel</div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <i class="bi bi-person-check-fill fs-2 text-success mb-1"></i>
+          <div class="fw-bold fs-4" th:text="${totalActifs}">0</div>
+          <div class="text-muted small">Actifs</div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <i class="bi bi-mortarboard-fill fs-2 text-info mb-1"></i>
+          <div class="fw-bold fs-4" th:text="${totalEnseignants}">0</div>
+          <div class="text-muted small">Enseignants</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECHERCHE ──────────────────────────────────────────── -->
+    <div class="mb-3">
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text" id="searchPersonnel" class="form-control border-start-0 ps-0"
+               placeholder="Rechercher par nom, fonction, matière, email…"
+               oninput="filterTable(this.value)">
+      </div>
+    </div>
+
+    <!-- ── LISTE ──────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm">
+      <div th:if="${#lists.isEmpty(personnels)}" class="text-center text-muted py-5">
+        <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+        <p class="mb-3">Aucun membre du personnel enregistré.</p>
+        <button class="btn btn-primary" onclick="toggleForm()">
+          <i class="bi bi-plus-lg me-1"></i>Ajouter le premier membre
+        </button>
+      </div>
+
+      <div th:unless="${#lists.isEmpty(personnels)}">
+        <!-- Compteur -->
+        <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge bg-primary-subtle text-primary fw-semibold"
+                th:text="${totalPersonnels} + ' membre(s)'"></span>
+          <span id="filtreCount" class="text-muted small d-none"></span>
+          <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="btnToggleCodes"
+                  onclick="toggleCodesRH()">
+            <i class="bi bi-eye me-1"></i>Afficher les codes RH
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="tablePersonnel">
+            <thead class="table-light">
+              <tr>
+                <th style="width:48px"></th>
+                <th>Nom complet</th>
+                <th>Fonction</th>
+                <th>Matière</th>
+                <th>Contact</th>
+                <th>Statut</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-hover" th:each="p : ${personnels}" th:id="'row-' + ${p.id}">
+                <td>
+                  <div class="avatar"
+                       th:style="${p.statut == 'ACTIF'} ? 'background:#e8f0fe;color:#1a73e8' : 'background:#f5f5f5;color:#9aa0a6'"
+                       th:text="${#strings.substring(p.nom,0,1) + #strings.substring(p.prenom,0,1)}"></div>
+                </td>
+                <td>
+                  <div class="fw-semibold" th:text="${p.nom + ' ' + p.prenom}"></div>
+                  <div class="small text-muted" th:text="${p.email ?: '–'}"></div>
+                  <div class="code-rh d-none mt-1" th:if="${p.codeAcces != null and !#strings.isEmpty(p.codeAcces)}">
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace small">
+                      <i class="bi bi-key-fill me-1"></i><span th:text="${p.codeAcces}"></span>
+                    </span>
+                  </div>
+                  <div class="code-rh d-none mt-1" th:unless="${p.codeAcces != null and !#strings.isEmpty(p.codeAcces)}">
+                    <span class="text-muted small fst-italic">Pas de code RH</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-fn"
+                        th:classappend="${p.fonction == 'ENSEIGNANT'   ? 'bg-primary-subtle text-primary'   :
+                                         (p.fonction == 'DIRECTEUR'   ? 'bg-dark-subtle text-dark'         :
+                                         (p.fonction == 'SECRETAIRE'  ? 'bg-info-subtle text-info'         :
+                                         (p.fonction == 'SURVEILLANT' ? 'bg-warning-subtle text-warning'   :
+                                         'bg-secondary-subtle text-secondary')))}"
+                        th:text="${p.fonction ?: '–'}"></span>
+                </td>
+                <td class="text-muted small" th:text="${p.matiereEnseignee ?: '–'}"></td>
+                <td class="small" th:text="${p.telephone ?: '–'}"></td>
+                <td>
+                  <span class="badge badge-fn"
+                        th:classappend="${p.statut == 'ACTIF'} ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'"
+                        th:text="${p.statut ?: 'ACTIF'}"></span>
+                </td>
+                <td class="text-end">
+                  <a th:href="@{/personnel/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary me-1" title="Voir la fiche">
+                    <i class="bi bi-folder2-open"></i>
+                  </a>
+                  <button class="btn btn-sm btn-outline-secondary"
+                          th:attr="data-bs-target='#editModal'+${p.id}"
+                          data-bs-toggle="modal" title="Modifier">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <form th:action="@{/personnel/{id}/supprimer(id=${p.id})}" method="post" class="d-inline"
+                        th:attr="data-nom=${p.nom},data-prenom=${p.prenom}"
+                        onsubmit="return confirm('Supprimer ' + this.dataset.nom + ' ' + this.dataset.prenom + ' définitivement ?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODALS MODIFICATION ────────────────────────────────── -->
+    <div th:each="p : ${personnels}">
+      <div class="modal fade" th:id="'editModal'+${p.id}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title fw-bold">
+                <i class="bi bi-pencil-square text-primary me-1"></i>
+                Modifier — <span th:text="${p.nom + ' ' + p.prenom}"></span>
+              </h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/personnel/{id}/modifier(id=${p.id})}" method="post">
+              <div class="modal-body row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Nom *</label>
+                  <input type="text" name="nom" class="form-control" required style="text-transform:uppercase" th:value="${p.nom}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Prénom *</label>
+                  <input type="text" name="prenom" class="form-control" required th:value="${p.prenom}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Fonction *</label>
+                  <select name="fonction" class="form-select" required>
+                    <option th:selected="${p.fonction=='ENSEIGNANT'}"     value="ENSEIGNANT">Enseignant(e)</option>
+                    <option th:selected="${p.fonction=='DIRECTEUR'}"      value="DIRECTEUR">Directeur / Directrice</option>
+                    <option th:selected="${p.fonction=='SECRETAIRE'}"     value="SECRETAIRE">Secrétaire</option>
+                    <option th:selected="${p.fonction=='SURVEILLANT'}"    value="SURVEILLANT">Surveillant(e)</option>
+                    <option th:selected="${p.fonction=='COMPTABLE'}"      value="COMPTABLE">Comptable</option>
+                    <option th:selected="${p.fonction=='AGENT_ENTRETIEN'}" value="AGENT_ENTRETIEN">Agent d'entretien</option>
+                    <option th:selected="${p.fonction=='AUTRE'}"          value="AUTRE">Autre</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Matière enseignée</label>
+                  <input type="text" name="matiereEnseignee" class="form-control" th:value="${p.matiereEnseignee}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Email</label>
+                  <input type="email" name="email" class="form-control" th:value="${p.email}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Téléphone</label>
+                  <input type="tel" name="telephone" class="form-control" th:value="${p.telephone}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Date d'embauche</label>
+                  <input type="date" name="dateEmbauche" class="form-control"
+                         th:value="${p.dateEmbauche != null ? #temporals.format(p.dateEmbauche,'yyyy-MM-dd') : ''}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">Statut</label>
+                  <select name="statut" class="form-select">
+                    <option th:selected="${p.statut=='ACTIF'}"    value="ACTIF">Actif</option>
+                    <option th:selected="${p.statut=='ARCHIVE'}"  value="ARCHIVE">Archivé</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Adresse</label>
+                  <input type="text" name="adresse" class="form-control" th:value="${p.adresse}">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Remarques</label>
+                  <textarea name="remarques" class="form-control" rows="2" th:text="${p.remarques}"></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="bi bi-save me-1"></i>Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /page-wrap -->
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Afficher / masquer le formulaire d'ajout ──
+function toggleForm() {
+  var panel = document.getElementById('addForm');
+  var btn   = document.getElementById('btnShowForm');
+  var open  = panel.style.display !== 'none' && panel.style.display !== '';
+  if (open) {
+    panel.style.display = 'none';
+    btn.innerHTML = '<i class="bi bi-person-plus-fill me-1"></i>Ajouter un membre';
+    btn.classList.replace('btn-secondary', 'btn-primary');
+  } else {
+    panel.style.display = 'block';
+    btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Masquer le formulaire';
+    btn.classList.replace('btn-primary', 'btn-secondary');
+    panel.querySelector('input[name="nom"]').focus();
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// ── Filtre de recherche ──
+function filterTable(q) {
+  q = q.toLowerCase().trim();
+  var rows = document.querySelectorAll('#tablePersonnel tbody tr');
+  var visible = 0;
+  rows.forEach(function(row) {
+    var match = !q || row.textContent.toLowerCase().includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  var counter = document.getElementById('filtreCount');
+  if (q) {
+    counter.textContent = visible + ' résultat(s) pour "' + q + '"';
+    counter.classList.remove('d-none');
+  } else {
+    counter.classList.add('d-none');
+  }
+}
+
+// ── Auto-uppercase sur le champ Nom ──
+document.querySelectorAll('input[name="nom"]').forEach(function(el) {
+  el.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+});
+
+// ── Afficher / masquer les codes RH ──
+var codesVisibles = false;
+function toggleCodesRH() {
+  codesVisibles = !codesVisibles;
+  document.querySelectorAll('.code-rh').forEach(function(el) {
+    el.classList.toggle('d-none', !codesVisibles);
+  });
+  var btn = document.getElementById('btnToggleCodes');
+  if (codesVisibles) {
+    btn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Masquer les codes RH';
+    btn.classList.replace('btn-outline-secondary', 'btn-warning');
+  } else {
+    btn.innerHTML = '<i class="bi bi-eye me-1"></i>Afficher les codes RH';
+    btn.classList.replace('btn-warning', 'btn-outline-secondary');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Espace enseignant – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .action-card{border:none;transition:transform .15s;cursor:pointer}.action-card:hover{transform:translateY(-3px)}
+    .assign-pill{display:inline-flex;align-items:center;gap:.4rem;background:#e8f0fe;color:#1a73e8;border-radius:20px;padding:.3rem .8rem;font-size:.83rem;font-weight:600;text-decoration:none}
+    .assign-pill:hover{background:#d2e3fc;color:#1a73e8}
+    .assign-pill .cls{font-weight:400;color:#5f6368;font-size:.78rem}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Espace enseignant</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <div style="width:44px;height:44px;border-radius:12px;background:#e8f0fe;display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-mortarboard-fill text-primary fs-5"></i>
+      </div>
+      <div>
+        <h4 class="fw-bold mb-0">Espace enseignant</h4>
+        <p class="text-muted small mb-0">
+          Bonjour, <strong sec:authentication="name">enseignant</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- Mes autorisations / matières attribuées -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock-fill text-warning"></i>
+        <h6 class="mb-0 fw-bold">Mes matières et classes attribuées</h6>
+      </div>
+      <div class="card-body">
+
+        <!-- Pas d'autorisations -->
+        <div th:if="${!hasAutorisations}" class="text-center text-muted py-4">
+          <i class="bi bi-lock fs-1 d-block mb-2 opacity-25"></i>
+          <p class="mb-1">Aucune matière ne vous a encore été attribuée.</p>
+          <small>Contactez l'administrateur pour obtenir des autorisations de saisie.</small>
+        </div>
+
+        <!-- Liste des autorisations avec liens rapides -->
+        <div th:if="${hasAutorisations}">
+          <p class="text-muted small mb-3">Cliquez sur une autorisation pour saisir les notes directement :</p>
+          <div class="d-flex flex-wrap gap-2">
+            <a th:each="auth : ${autorisations}"
+               th:href="@{/notes/saisie(matiereId=${auth.matiereId},classeId=${auth.classeId})}"
+               class="assign-pill">
+              <i class="bi bi-book-fill"></i>
+              <span th:text="${matiereMap[auth.matiereId]?.nom ?: '?'}"></span>
+              <span class="cls">— <span th:text="${classeMap[auth.classeId]?.nom ?: '?'}"></span></span>
+              <i class="bi bi-arrow-right small"></i>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <h6 class="text-muted fw-semibold mb-3 text-uppercase" style="font-size:.75rem;letter-spacing:.06em">
+      Actions disponibles
+    </h6>
+    <div class="row g-3">
+
+      <div class="col-sm-6 col-lg-4">
+        <a th:href="@{/notes/saisie}" class="text-decoration-none">
+          <div class="card action-card shadow-sm text-center p-4 h-100">
+            <i class="bi bi-lightning-fill fs-1 text-warning mb-2"></i>
+            <h6 class="fw-bold">Saisie rapide des notes</h6>
+            <p class="text-muted small mb-0">Saisir les notes de vos élèves par classe et matière</p>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-sm-6 col-lg-4">
+        <a th:href="@{/notes}" class="text-decoration-none">
+          <div class="card action-card shadow-sm text-center p-4 h-100">
+            <i class="bi bi-journal-text fs-1 text-primary mb-2"></i>
+            <h6 class="fw-bold">Consultation des notes</h6>
+            <p class="text-muted small mb-0">Voir et gérer les notes déjà enregistrées</p>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-sm-6 col-lg-4">
+        <a th:href="@{/surveillance}" class="text-decoration-none">
+          <div class="card action-card shadow-sm text-center p-4 h-100">
+            <i class="bi bi-eye-fill fs-1 text-info mb-2"></i>
+            <h6 class="fw-bold">Appel &amp; Surveillance</h6>
+            <p class="text-muted small mb-0">Faire l'appel et signaler les absences</p>
+          </div>
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

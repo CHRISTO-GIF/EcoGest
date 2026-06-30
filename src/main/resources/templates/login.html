@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HolyFlame – Connexion</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%); min-height: 100vh; display: flex; align-items: center; }
+        .login-card { max-width: 430px; width: 100%; }
+        .brand-flame { font-size: 3rem; color: #f6ad55; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col login-card">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-fire brand-flame"></i>
+                        <h2 class="fw-bold mt-1 mb-0">HolyFlame</h2>
+                        <p class="text-muted small">Système d'administration scolaire</p>
+                    </div>
+
+                    <div th:if="${param.error}" class="alert alert-danger py-2 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Email ou mot de passe incorrect.
+                    </div>
+                    <div th:if="${param.logout}" class="alert alert-success py-2 small">
+                        <i class="bi bi-check-circle-fill me-1"></i>Vous avez été déconnecté avec succès.
+                    </div>
+                    <div th:if="${inscriptionSucces}" class="alert alert-success py-2 small">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        Votre école <strong th:text="${nomEcole}"></strong> a été créée avec succès !
+                        Connectez-vous avec votre email administrateur pour accéder à votre tableau de bord.
+                    </div>
+
+                    <form th:action="@{/login}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-semibold small">Adresse email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-envelope text-muted"></i>
+                                </span>
+                                <input type="text" id="username" name="username"
+                                       class="form-control border-start-0 ps-0"
+                                       th:value="${adminEmail != null ? adminEmail : ''}"
+                                       placeholder="votre@email.com" required autofocus>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold small">Mot de passe</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-lock text-muted"></i>
+                                </span>
+                                <input type="password" id="password" name="password"
+                                       class="form-control border-start-0 border-end-0 ps-0"
+                                       placeholder="••••••••" required>
+                                <button type="button" id="togglePassword"
+                                        class="input-group-text bg-light border-start-0"
+                                        style="cursor:pointer" title="Afficher / masquer">
+                                    <i class="bi bi-eye text-muted" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+                        </button>
+                    </form>
+
+                    <div class="mt-4 p-3 bg-light rounded-3 small">
+                        <div class="fw-semibold text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Comptes de démonstration</div>
+                        <div class="d-flex flex-column gap-1">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">admin@holyflame.com</span>
+                            <div class="d-flex gap-1 align-items-center">
+                              <code>admin123</code>
+                              <span class="badge bg-dark-subtle text-dark" style="font-size:.65rem">ADMIN</span>
+                            </div>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">enseignant@holyflame.com</span>
+                            <div class="d-flex gap-1 align-items-center">
+                              <code>ens123</code>
+                              <span class="badge bg-primary-subtle text-primary" style="font-size:.65rem">ENSEIGNANT</span>
+                            </div>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">secretaire@holyflame.com</span>
+                            <div class="d-flex gap-1 align-items-center">
+                              <code>secret123</code>
+                              <span class="badge bg-info-subtle text-info" style="font-size:.65rem">SECRÉTAIRE</span>
+                            </div>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">tresorier@holyflame.com</span>
+                            <div class="d-flex gap-1 align-items-center">
+                              <code>tresor123</code>
+                              <span class="badge bg-success-subtle text-success" style="font-size:.65rem">TRÉSORIER</span>
+                            </div>
+                          </div>
+                          <hr class="my-1">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">eleve@holyflame.com</span>
+                            <div class="d-flex gap-1 align-items-center">
+                              <code>eleve123</code>
+                              <span class="badge bg-warning-subtle text-warning" style="font-size:.65rem">ÉLÈVE</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size:.72rem">
+                          <i class="bi bi-mouse2 me-1"></i>Cliquez sur un compte pour le remplir automatiquement
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-white-50 mt-3 small">© 2026 HolyFlame · Tous droits réservés</p>
+        </div>
+    </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+// Bouton œil — afficher / masquer le mot de passe
+document.getElementById('togglePassword').addEventListener('click', function () {
+  const input = document.getElementById('password');
+  const icon  = document.getElementById('eyeIcon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('bi-eye', 'bi-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('bi-eye-slash', 'bi-eye');
+  }
+});
+
+// Clic sur un compte → remplit les champs
+document.querySelectorAll('.bg-light .d-flex.justify-content-between').forEach(row => {
+  row.style.cursor = 'pointer';
+  row.addEventListener('click', () => {
+    const email = row.querySelector('.text-muted')?.textContent.trim();
+    const pass  = row.querySelector('code')?.textContent.trim();
+    if (email && pass) {
+      document.getElementById('username').value = email;
+      document.getElementById('password').value = pass;
+      document.getElementById('username').focus();
+    }
+  });
+});
+</script>
+</body>
+</html>

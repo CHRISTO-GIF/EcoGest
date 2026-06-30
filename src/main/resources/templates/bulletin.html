@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bulletin – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    @media print{
+      .sidebar,.btn,.breadcrumb,.no-print{display:none!important}
+      .main{padding:0!important}
+      .card{box-shadow:none!important;border:1px solid #ddd!important}
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <nav aria-label="breadcrumb" class="mb-3 no-print">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/bulletins}">Bulletins</a></li>
+        <li class="breadcrumb-item active" th:text="${eleve.nom + ' ' + eleve.prenom}">Élève</li>
+      </ol>
+    </nav>
+
+    <!-- Sélecteur de trimestre -->
+    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+      <h5 class="fw-bold mb-0">Bulletin de notes</h5>
+      <div class="d-flex gap-2">
+        <div class="btn-group btn-group-sm">
+          <a th:href="@{/notes/bulletin/{id}(id=${eleve.id},trimestre=1)}" class="btn" th:classappend="${trimestre==1}?'btn-primary':'btn-outline-primary'">T1</a>
+          <a th:href="@{/notes/bulletin/{id}(id=${eleve.id},trimestre=2)}" class="btn" th:classappend="${trimestre==2}?'btn-primary':'btn-outline-primary'">T2</a>
+          <a th:href="@{/notes/bulletin/{id}(id=${eleve.id},trimestre=3)}" class="btn" th:classappend="${trimestre==3}?'btn-primary':'btn-outline-primary'">T3</a>
+        </div>
+        <button onclick="window.print()" class="btn btn-success btn-sm">
+          <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="max-width:800px">
+      <!-- En-tête bulletin -->
+      <div class="card-header bg-primary text-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold fs-5"><i class="bi bi-fire text-warning me-1"></i>HolyFlame</div>
+            <div class="small opacity-75">Administration Scolaire</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold">BULLETIN DE NOTES</div>
+            <div class="small">
+              <span th:text="${trimestre == 1 ? '1er Trimestre' : (trimestre == 2 ? '2e Trimestre' : '3e Trimestre')}"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Info élève -->
+      <div class="card-body border-bottom py-3">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="small text-muted">Élève</div>
+            <div class="fw-bold fs-5" th:text="${eleve.nom + ' ' + eleve.prenom}"></div>
+          </div>
+          <div class="col-md-3">
+            <div class="small text-muted">Classe</div>
+            <div class="fw-bold" th:text="${eleve.classe?.nom}"></div>
+          </div>
+          <div class="col-md-3">
+            <div class="small text-muted">Matricule</div>
+            <div class="fw-semibold" th:text="${eleve.matricule}"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Tableau des notes -->
+      <div class="card-body p-0">
+        <div th:if="${#lists.isEmpty(notes)}" class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1 d-block mb-2"></i>Aucune note pour ce trimestre.
+        </div>
+        <table th:unless="${#lists.isEmpty(notes)}" class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Matière</th><th>Notes</th><th>Coeff</th><th>Type</th><th>Appréciation</th></tr>
+          </thead>
+          <tbody>
+            <tr th:each="n : ${notes}">
+              <td class="fw-semibold" th:text="${n.matiere?.nom}"></td>
+              <td>
+                <span class="fw-bold fs-5"
+                      th:classappend="${n.valeur != null and n.valeur >= 10} ? 'text-success' : 'text-danger'"
+                      th:text="${n.valeur + '/20'}"></span>
+              </td>
+              <td class="text-muted" th:text="${n.coefficient}"></td>
+              <td><span class="badge bg-secondary-subtle text-secondary" th:text="${n.type}"></span></td>
+              <td class="small text-muted" th:text="${n.commentaire ?: '–'}"></td>
+            </tr>
+          </tbody>
+          <tfoot class="table-primary">
+            <tr>
+              <td colspan="4" class="fw-bold text-end">Moyenne générale :</td>
+              <td class="fw-bold fs-5" th:text="${moyenneGenerale + ' / 20'}"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <!-- Mentions -->
+      <div class="card-footer bg-white py-3" th:unless="${#lists.isEmpty(notes)}">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <span class="badge fs-6 px-3 py-2"
+                  th:classappend="${moyenneGenerale >= 16} ? 'bg-success' : (${moyenneGenerale >= 14} ? 'bg-primary' : (${moyenneGenerale >= 10} ? 'bg-warning text-dark' : 'bg-danger'))"
+                  th:text="${moyenneGenerale >= 16} ? 'TRÈS BIEN' : (${moyenneGenerale >= 14} ? 'BIEN' : (${moyenneGenerale >= 12} ? 'ASSEZ BIEN' : (${moyenneGenerale >= 10} ? 'PASSABLE' : 'INSUFFISANT')))"></span>
+          </div>
+          <div class="col-md-6 text-end small text-muted">
+            Généré le <span th:text="${#temporals.format(#temporals.createNow(),'dd/MM/yyyy')}"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

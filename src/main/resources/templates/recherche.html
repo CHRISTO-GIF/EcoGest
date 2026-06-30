@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recherche – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .result-card{border:0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);transition:transform .15s}
+    .result-card:hover{transform:translateY(-2px)}
+    .section-title{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#6c757d;margin-bottom:.75rem}
+    .badge-cat{font-size:.7rem;padding:.2rem .5rem;border-radius:6px}
+    .highlight{background:#fff3cd;border-radius:3px;padding:0 2px}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <!-- En-tête + barre -->
+    <div class="mb-4">
+      <h4 class="fw-bold mb-3"><i class="bi bi-search me-2 text-primary"></i>Recherche globale</h4>
+      <form method="get" action="/recherche" class="d-flex gap-2" style="max-width:520px">
+        <input type="text" name="q" th:value="${q}" class="form-control"
+               placeholder="Nom, prénom, matricule, matière…" autofocus>
+        <button class="btn btn-primary px-4" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+    </div>
+
+    <!-- Trop court -->
+    <div th:if="${tropCourt}" class="text-muted mt-4">
+      <i class="bi bi-info-circle me-1"></i>Saisissez au moins 2 caractères pour lancer la recherche.
+    </div>
+
+    <!-- Résultats -->
+    <div th:unless="${tropCourt}">
+
+      <!-- Aucun résultat -->
+      <div th:if="${#lists.isEmpty(eleves) and #lists.isEmpty(personnels) and #lists.isEmpty(classes) and #lists.isEmpty(matieres)}"
+           class="text-center mt-5 text-muted">
+        <i class="bi bi-search fs-1 d-block mb-2"></i>
+        Aucun résultat pour <strong th:text="${q}">…</strong>
+      </div>
+
+      <div class="row g-4">
+
+        <!-- Élèves -->
+        <div th:if="${!#lists.isEmpty(eleves)}" class="col-12">
+          <div class="section-title"><i class="bi bi-people-fill me-1"></i>Élèves (<span th:text="${#lists.size(eleves)}">0</span>)</div>
+          <div class="row g-2">
+            <div class="col-md-6 col-xl-4" th:each="e : ${eleves}">
+              <a th:href="@{/secretariat/eleve/{id}(id=${e.id})}" class="text-decoration-none">
+                <div class="card result-card p-3 d-flex flex-row align-items-center gap-3">
+                  <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                       style="width:40px;height:40px;font-size:1.1rem">
+                    <i class="bi bi-person-fill"></i>
+                  </div>
+                  <div class="overflow-hidden">
+                    <div class="fw-semibold text-truncate" th:text="${e.nom + ' ' + e.prenom}">Nom</div>
+                    <div class="small text-muted text-truncate">
+                      <span th:text="${e.matricule}">MAT</span> ·
+                      <span th:text="${e.classe != null ? e.classe.nom : '—'}">Classe</span>
+                    </div>
+                  </div>
+                  <span class="ms-auto badge bg-primary-subtle text-primary badge-cat">Élève</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personnel -->
+        <div th:if="${!#lists.isEmpty(personnels)}" class="col-12">
+          <div class="section-title"><i class="bi bi-person-badge-fill me-1"></i>Personnel (<span th:text="${#lists.size(personnels)}">0</span>)</div>
+          <div class="row g-2">
+            <div class="col-md-6 col-xl-4" th:each="p : ${personnels}">
+              <a th:href="@{/personnel/{id}(id=${p.id})}" class="text-decoration-none">
+                <div class="card result-card p-3 d-flex flex-row align-items-center gap-3">
+                  <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0"
+                       style="width:40px;height:40px;font-size:1.1rem">
+                    <i class="bi bi-person-badge-fill"></i>
+                  </div>
+                  <div class="overflow-hidden">
+                    <div class="fw-semibold text-truncate" th:text="${p.nom + ' ' + p.prenom}">Nom</div>
+                    <div class="small text-muted text-truncate" th:text="${p.fonction ?: '—'}">Fonction</div>
+                  </div>
+                  <span class="ms-auto badge bg-success-subtle text-success badge-cat">Personnel</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Classes -->
+        <div th:if="${!#lists.isEmpty(classes)}" class="col-12">
+          <div class="section-title"><i class="bi bi-building me-1"></i>Classes (<span th:text="${#lists.size(classes)}">0</span>)</div>
+          <div class="row g-2">
+            <div class="col-md-4 col-xl-3" th:each="c : ${classes}">
+              <a th:href="@{/gestion-classes}" class="text-decoration-none">
+                <div class="card result-card p-3 d-flex flex-row align-items-center gap-3">
+                  <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center flex-shrink-0"
+                       style="width:40px;height:40px;font-size:1.1rem">
+                    <i class="bi bi-building"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold" th:text="${c.nom}">Nom</div>
+                    <div class="small text-muted" th:text="${c.niveau ?: '—'}">Niveau</div>
+                  </div>
+                  <span class="ms-auto badge bg-warning-subtle text-warning badge-cat">Classe</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Matières -->
+        <div th:if="${!#lists.isEmpty(matieres)}" class="col-12">
+          <div class="section-title"><i class="bi bi-book-fill me-1"></i>Matières (<span th:text="${#lists.size(matieres)}">0</span>)</div>
+          <div class="row g-2">
+            <div class="col-md-4 col-xl-3" th:each="m : ${matieres}">
+              <a th:href="@{/matieres}" class="text-decoration-none">
+                <div class="card result-card p-3 d-flex flex-row align-items-center gap-3">
+                  <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center flex-shrink-0"
+                       style="width:40px;height:40px;font-size:1.1rem">
+                    <i class="bi bi-book-fill"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold" th:text="${m.nom}">Nom</div>
+                    <div class="small text-muted" th:text="${'Coef. ' + m.coefficient}">Coef</div>
+                  </div>
+                  <span class="ms-auto badge bg-info-subtle text-info badge-cat">Matière</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

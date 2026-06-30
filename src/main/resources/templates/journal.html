@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journal de bord – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>
+    body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}
+    .log-row:hover{background:#f8f9fa}
+    .module-badge{font-size:.68rem;padding:.18rem .5rem;border-radius:6px;font-weight:600}
+    .module-ELEVES{background:#dbeafe;color:#1e40af}
+    .module-FINANCES{background:#dcfce7;color:#166534}
+    .module-NOTES{background:#fef9c3;color:#713f12}
+    .module-ABSENCES{background:#fee2e2;color:#991b1b}
+    .module-RH{background:#f3e8ff;color:#6b21a8}
+    .module-PARAMETRES{background:#e0f2fe;color:#0c4a6e}
+    .module-COMMUNICATION{background:#fce7f3;color:#9d174d}
+    .module-BULLETINS{background:#f0fdf4;color:#14532d}
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-journal-text me-2 text-primary"></i>Journal de bord</h4>
+        <p class="text-muted small mb-0">Historique des actions effectuées dans l'application</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <form method="get" action="/journal" class="d-flex gap-2">
+          <select name="module" class="form-select form-select-sm" style="width:auto">
+            <option value="">Tous les modules</option>
+            <option th:each="m : ${modules}" th:value="${m}" th:text="${m}"
+                    th:selected="${m == module}">MODULE</option>
+          </select>
+          <select name="limit" class="form-select form-select-sm" style="width:auto">
+            <option value="50" th:selected="${limit==50}">50 entrées</option>
+            <option value="100" th:selected="${limit==100}">100 entrées</option>
+            <option value="250" th:selected="${limit==250}">250 entrées</option>
+          </select>
+          <button class="btn btn-sm btn-outline-primary" type="submit">Filtrer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tableau -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width:160px">Date</th>
+                <th style="width:90px">Module</th>
+                <th style="width:180px">Utilisateur</th>
+                <th>Action</th>
+                <th>Détail</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:if="${#lists.isEmpty(actions)}">
+                <td colspan="5" class="text-center text-muted py-4">
+                  <i class="bi bi-journal-x fs-3 d-block mb-1"></i>Aucune action enregistrée pour le moment
+                </td>
+              </tr>
+              <tr th:each="a : ${actions}" class="log-row">
+                <td class="small text-muted"
+                    th:text="${#temporals.format(a.date, 'dd/MM/yyyy HH:mm')}">—</td>
+                <td>
+                  <span th:if="${a.module != null}"
+                        th:classappend="'module-' + ${a.module}"
+                        class="module-badge"
+                        th:text="${a.module}">MODULE</span>
+                </td>
+                <td class="small" th:text="${a.utilisateurEmail}">—</td>
+                <td class="small fw-semibold" th:text="${a.action}">—</td>
+                <td class="small text-muted" th:text="${a.detail}">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted small mt-2">
+      <span th:text="${#lists.size(actions)}">0</span> entrée(s) affichée(s)
+    </p>
+
+  </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modifier un élève – HolyFlame</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-icons.min.css">
+  <style>body{background:#f0f4f8;margin:0}.page-wrap{display:flex;min-height:100vh}.main{flex:1;overflow-y:auto}</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+  <div class="main p-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Tableau de bord</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/secretariat}">Secrétariat</a></li>
+        <li class="breadcrumb-item active">Modifier un élève</li>
+      </ol>
+    </nav>
+
+    <div class="card border-0 shadow-sm" style="max-width:720px">
+      <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-pencil-square text-primary me-2"></i>Modifier l'élève</h5>
+      </div>
+      <div class="card-body">
+        <form th:action="@{/secretariat/eleves/{id}/modifier(id=${eleve.id})}" method="post">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Matricule *</label>
+              <input type="text" name="matricule" class="form-control" th:value="${eleve.matricule}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Nom *</label>
+              <input type="text" name="nom" class="form-control" th:value="${eleve.nom}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Prénom *</label>
+              <input type="text" name="prenom" class="form-control" th:value="${eleve.prenom}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Date de naissance</label>
+              <input type="date" name="dateNaissance" class="form-control" th:value="${eleve.dateNaissance}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Classe *</label>
+              <select name="classeId" class="form-select" required>
+                <option th:each="c : ${classes}" th:value="${c.id}"
+                        th:selected="${c.id == eleve.classe?.id}"
+                        th:text="${c.nom + ' (' + c.anneeScolaire + ')'}"></option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Statut</label>
+              <select name="statutInscription" class="form-select">
+                <option value="INSCRIT"    th:selected="${eleve.statutInscription == 'INSCRIT'}">Inscrit</option>
+                <option value="EN_ATTENTE" th:selected="${eleve.statutInscription == 'EN_ATTENTE'}">En attente</option>
+                <option value="SUSPENDU"   th:selected="${eleve.statutInscription == 'SUSPENDU'}">Suspendu</option>
+                <option value="DIPLOME"    th:selected="${eleve.statutInscription == 'DIPLOME'}">Diplômé</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Téléphone parent</label>
+              <input type="tel" name="telephoneParent" class="form-control" th:value="${eleve.telephoneParent}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email parent</label>
+              <input type="email" name="emailParent" class="form-control" th:value="${eleve.emailParent}">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Adresse</label>
+              <input type="text" name="adresse" class="form-control" th:value="${eleve.adresse}">
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+            <a th:href="@{/secretariat}" class="btn btn-light">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
