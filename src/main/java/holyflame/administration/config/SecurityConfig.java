@@ -25,7 +25,6 @@ public class SecurityConfig {
                 .requestMatchers("/secretariat/**").hasAnyRole("ADMIN", "SECRETAIRE")
                 .requestMatchers("/tresorerie/**").hasAnyRole("ADMIN", "TRESORIER")
                 .requestMatchers("/gestion-classes/**").hasRole("ADMIN")
-                .requestMatchers("/gestion-salles/**").hasRole("ADMIN")
                 .requestMatchers("/matieres/**").hasRole("ADMIN")
                 .requestMatchers("/personnel/**").hasRole("ADMIN")
                 .requestMatchers("/surveillance/**").hasAnyRole("ADMIN", "ENSEIGNANT")
