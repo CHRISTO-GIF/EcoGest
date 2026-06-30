@@ -212,6 +212,9 @@
             <span class="input-group-text"><i class="bi bi-lock"></i></span>
             <input type="password" id="adminMotDePasse" name="adminMotDePasse" class="form-control" required
                    minlength="6" placeholder="Min. 6 caractères">
+            <button type="button" id="toggleMotDePasse" class="input-group-text" style="cursor:pointer" title="Afficher / masquer">
+              <i class="bi bi-eye" id="eyeMotDePasse"></i>
+            </button>
           </div>
         </div>
         <div class="col-md-6">
@@ -220,6 +223,9 @@
             <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
             <input type="password" id="confirmMotDePasse" class="form-control" required
                    placeholder="Resaisir le mot de passe">
+            <button type="button" id="toggleConfirmMotDePasse" class="input-group-text" style="cursor:pointer" title="Afficher / masquer">
+              <i class="bi bi-eye" id="eyeConfirmMotDePasse"></i>
+            </button>
           </div>
           <div class="invalid-feedback" id="err-mdp">Les mots de passe ne correspondent pas.</div>
         </div>
@@ -348,6 +354,23 @@
 </div>
 
 <script>
+// ── Afficher / masquer les mots de passe ─────────────────────────────
+function brancherToggleMotDePasse(boutonId, champId, oeilId) {
+  document.getElementById(boutonId).addEventListener('click', function () {
+    const input = document.getElementById(champId);
+    const icone = document.getElementById(oeilId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      icone.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icone.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  });
+}
+brancherToggleMotDePasse('toggleMotDePasse', 'adminMotDePasse', 'eyeMotDePasse');
+brancherToggleMotDePasse('toggleConfirmMotDePasse', 'confirmMotDePasse', 'eyeConfirmMotDePasse');
+
 // ── Données pays : indicatif → nom, monnaie, provinces ──────────────
 const PAYS_DATA = {
   '+235': { nom: 'Tchad', monnaie: 'FCFA', provinces: ["N'Djamena",'Moundou','Sarh','Abéché','Kélo','Koumra','Pala','Am Timan','Bongor','Mongo','Doba','Faya-Largeau'] },
